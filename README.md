@@ -14,7 +14,7 @@ A full-stack, enterprise-grade Applicant Tracking System (ATS) and Recruitment M
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0^-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
 [![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-0.45^-C5F74F?style=flat&logo=drizzle)](https://orm.drizzle.team/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16^-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 </div>
 
 ---
@@ -115,4 +115,4 @@ npm run db:studio    # Open Drizzle Studio database viewer
 
 ## License
 
-[MIT](LICENSE) · [Code of Conduct](CODE_OF_CONDUCT.md)
+[Proprietary License](LICENSE) · [Code of Conduct](CODE_OF_CONDUCT.md)
