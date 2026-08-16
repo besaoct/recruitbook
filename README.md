@@ -89,15 +89,14 @@ Open [http://localhost:3000](http://localhost:3000) to access the platform.
 
 ## Demo Accounts
 
-All demo accounts share the password: `Admin@123456`
+All demo accounts share the password: `ReqruitBook2026!`
 
 | Role | Email | Privileges |
 | :--- | :--- | :--- |
 | **System Administrator** | `admin@myorganisation.com` | Root Administrator (Full RBAC Management) |
-| **HR Manager** | `sarah.jenkins@myorganisation.com` | Requisitions, Offers, Candidates, HRM Sync |
-| **Lead Recruiter** | `alex.chen@myorganisation.com` | Sourcing, Pipeline Advancement, Interviews |
-| **Hiring Manager** | `david.kim@myorganisation.com` | Requisitions, Shortlisting, Scorecards |
-| **Interviewer** | `elena.rostova@myorganisation.com` | Panel Evaluations & Scorecards |
+| **Lead Recruiter** | `recruiter@myorganisation.com` | Requisitions, Pipeline Advancement, Offers |
+| **Hiring Manager** | `david.kim@myorganisation.com` | Engineering Requisitions, Scorecards |
+| **Interviewer** | `sarah.lopez@myorganisation.com` | Panel Evaluations & Scorecards |
 
 ---
 
