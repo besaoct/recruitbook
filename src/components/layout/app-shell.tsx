@@ -113,7 +113,7 @@ export function AppShell({
       {/* Mobile drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-62 border-r-0 p-0">
-          <SheetTitle className="sr-only">RecruitBook Navigation</SheetTitle>
+          <SheetTitle className="sr-only">ReqruitBook Navigation</SheetTitle>
           <Rail
             organizationName={organizationName}
             navigation={navigation}
@@ -168,7 +168,7 @@ function Rail({
       <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-shell-border px-3">
         <Image
           src="/logo.png"
-          alt="RecruitBook Logo"
+          alt="ReqruitBook Logo"
           width={32}
           height={32}
           className="size-8 rounded-xs object-contain"
@@ -176,7 +176,7 @@ function Rail({
         {!collapsed && (
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-semibold leading-tight flex items-center gap-1.5">
-              <span>RecruitBook</span>
+              <span>ReqruitBook</span>
             </div>
             <div className="truncate text-[11px] leading-tight text-shell-muted">
               {organizationName}

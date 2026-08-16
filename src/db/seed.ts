@@ -15,7 +15,7 @@ import {
 import { hashPassword } from "../lib/auth/password";
 
 export async function seed() {
-  console.log("🌱 Starting RecruitBook Database Seeding...");
+  console.log("🌱 Starting ReqruitBook Database Seeding...");
 
   // 1. Organization
   const orgId = "org_my_organisation";
@@ -196,7 +196,7 @@ export async function seed() {
   console.log("✓ Dynamic Roles created");
 
   // 4. Users with scrypt-hashed passwords
-  const defaultPasswordHash = await hashPassword("RecruitBook2026!");
+  const defaultPasswordHash = await hashPassword("ReqruitBook2026!");
 
   const userRecruiter = "usr_recruiter_01";
   const userAdmin = "usr_admin_01";
@@ -483,7 +483,7 @@ export async function seed() {
     .onConflictDoNothing();
 
   console.log("✓ Communication templates initialized");
-  console.log("✨ RecruitBook database successfully seeded with live data!");
+  console.log("✨ ReqruitBook database successfully seeded with live data!");
 }
 
 // Allow direct execution: tsx src/db/seed.ts

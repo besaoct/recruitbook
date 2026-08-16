@@ -32,7 +32,7 @@ const DEMO_ACCOUNTS = [
   },
 ];
 
-const DEMO_PASSWORD = "RecruitBook2026!";
+const DEMO_PASSWORD = "ReqruitBook2026!";
 
 export function LoginForm() {
   const router = useRouter();

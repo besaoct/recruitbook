@@ -1,6 +1,6 @@
-# RecruitBook
+# ReqruitBook
 
-**RecruitBook** is a universal Recruitment Management & Applicant Tracking System (ATS) designed to manage the complete recruitment lifecycle — from creating a job opening and receiving applications to interviewing, selecting, offering, and converting a candidate into an employee.
+**ReqruitBook** is a universal Recruitment Management & Applicant Tracking System (ATS) designed to manage the complete recruitment lifecycle — from creating a job opening and receiving applications to interviewing, selecting, offering, and converting a candidate into an employee.
 
 It consists of two connected experiences:
 
@@ -12,7 +12,7 @@ It consists of two connected experiences:
 # 1. Product Architecture
 
 ```text
-                         RECRUITBOOK
+                         REQRUITBOOK
                               │
               ┌───────────────┴────────────────┐
               │                                │
@@ -63,7 +63,7 @@ It consists of two connected experiences:
 
 ## 2.1 System Administrator
 
-Controls the entire RecruitBook installation.
+Controls the entire ReqruitBook installation.
 
 * Company settings
 * Users
@@ -226,7 +226,7 @@ Dashboard
 
 # 4. Dashboard
 
-The RecruitBook dashboard provides a real-time overview of recruitment activity.
+The ReqruitBook dashboard provides a real-time overview of recruitment activity.
 
 ### Summary
 
@@ -318,7 +318,7 @@ A job can also be archived.
 
 # 6. Public Careers Portal
 
-RecruitBook includes a public-facing careers website.
+ReqruitBook includes a public-facing careers website.
 
 ```text
                     CAREERS PORTAL
@@ -595,7 +595,7 @@ Application
 
 # 12. Recruitment Pipeline
 
-RecruitBook should have a configurable pipeline.
+ReqruitBook should have a configurable pipeline.
 
 ### Default Pipeline
 
@@ -736,7 +736,7 @@ Application
 
 # 16. Interview Calendar
 
-RecruitBook should provide:
+ReqruitBook should provide:
 
 * Day view
 * Week view
@@ -869,7 +869,7 @@ Withdrawn
 
 # 20. Offer Letter Generation
 
-RecruitBook can contain document templates.
+ReqruitBook can contain document templates.
 
 Example:
 
@@ -911,10 +911,10 @@ Hired
 Create Employee
 ```
 
-If RecruitBook is connected to an HRM system:
+If ReqruitBook is connected to an HRM system:
 
 ```text
-RecruitBook
+ReqruitBook
      │
      │ Candidate hired
      ▼
@@ -935,7 +935,7 @@ Candidate information should transfer automatically rather than being entered ag
 
 # 22. Recruitment Sources
 
-RecruitBook should track where candidates came from.
+ReqruitBook should track where candidates came from.
 
 ### Default Sources
 
@@ -967,7 +967,7 @@ Applications
 
 # 23. Communication System
 
-RecruitBook should maintain communication history for each application.
+ReqruitBook should maintain communication history for each application.
 
 ### Communication Types
 
@@ -1209,7 +1209,7 @@ Permissions can be applied to:
 
 # 29. Audit Log
 
-RecruitBook should record important actions.
+ReqruitBook should record important actions.
 
 Example:
 
@@ -1374,7 +1374,7 @@ AuditLog
 The system should logically separate the public Careers Portal from the internal Management Portal.
 
 ```text
-                         RECRUITBOOK
+                         REQRUITBOOK
                               │
               ┌───────────────┴───────────────┐
               │                               │
@@ -1396,7 +1396,7 @@ The system should logically separate the public Careers Portal from the internal
              └──────────────┬────────────────┘
                             │
                             ▼
-                     RECRUITBOOK CORE
+                     REQRUITBOOK CORE
                             │
         ┌───────────────────┼───────────────────┐
         ▼                   ▼                   ▼
@@ -1419,10 +1419,10 @@ The system should logically separate the public Careers Portal from the internal
 
 # 34. Recommended Product Modules
 
-RecruitBook can be built as a modular system.
+ReqruitBook can be built as a modular system.
 
 ```text
-RECRUITBOOK
+REQRUITBOOK
 │
 ├── Core
 │   ├── Organization
@@ -1484,7 +1484,7 @@ RECRUITBOOK
 
 # 35. Installation / Setup
 
-RecruitBook should use the same universal philosophy as the other business software products.
+ReqruitBook should use the same universal philosophy as the other business software products.
 
 It should **not** have separate versions for:
 
@@ -1496,12 +1496,12 @@ It should **not** have separate versions for:
 * Hospital
 * Agency
 
-Instead, RecruitBook is universal.
+Instead, ReqruitBook is universal.
 
 During installation:
 
 ```text
-                 RECRUITBOOK SETUP
+                 REQRUITBOOK SETUP
                         │
                         ▼
                  Company Details
@@ -1553,10 +1553,10 @@ The underlying system remains the same; enabled modules simply control which fea
 
 # 36. Future Integrations
 
-RecruitBook should be designed so that it can later integrate with other software.
+ReqruitBook should be designed so that it can later integrate with other software.
 
 ```text
-                    RECRUITBOOK
+                    REQRUITBOOK
                          │
        ┌─────────────────┼─────────────────┐
        ▼                 ▼                 ▼
@@ -1594,13 +1594,13 @@ Other possible integrations:
 
 # 37. Recommended Product Boundary
 
-RecruitBook should focus specifically on:
+ReqruitBook should focus specifically on:
 
 > **Finding → Evaluating → Hiring people**
 
 The HRM system should take over after hiring.
 
-### RecruitBook
+### ReqruitBook
 
 ```text
 Job
@@ -1652,7 +1652,7 @@ The two systems can share data, but they remain separate products.
 
 ```text
                          ┌─────────────────────┐
-                         │     RECRUITBOOK     │
+                         │     REQRUITBOOK     │
                          │ Recruitment + ATS   │
                          └──────────┬──────────┘
                                     │
@@ -1694,7 +1694,7 @@ The two systems can share data, but they remain separate products.
 
 ## Product Definition
 
-**RecruitBook = Universal Recruitment Management + Applicant Tracking + Careers Portal**
+**ReqruitBook = Universal Recruitment Management + Applicant Tracking + Careers Portal**
 
 Its core promise is:
 

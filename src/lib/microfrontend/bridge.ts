@@ -1,7 +1,7 @@
 import type {
-  RecruitBookEvent,
-  RecruitBookEventHandler,
-  RecruitBookEventType,
+  ReqruitBookEvent,
+  ReqruitBookEventHandler,
+  ReqruitBookEventType,
   HiredCandidatePayload,
 } from "./types";
 
@@ -11,8 +11,8 @@ import type {
  * Works across iframe boundaries (postMessage), custom events (window.dispatchEvent),
  * and direct in-memory subscribers for composite React shells.
  */
-class RecruitBookBridge {
-  private listeners: Map<string, Set<RecruitBookEventHandler>> = new Map();
+class ReqruitBookBridge {
+  private listeners: Map<string, Set<ReqruitBookEventHandler>> = new Map();
 
   constructor() {
     if (typeof window !== "undefined") {
@@ -21,25 +21,25 @@ class RecruitBookBridge {
   }
 
   public subscribe<T = any>(
-    type: RecruitBookEventType | "*",
-    handler: RecruitBookEventHandler<T>,
+    type: ReqruitBookEventType | "*",
+    handler: ReqruitBookEventHandler<T>,
   ): () => void {
     if (!this.listeners.has(type)) {
       this.listeners.set(type, new Set());
     }
-    this.listeners.get(type)!.add(handler as RecruitBookEventHandler);
+    this.listeners.get(type)!.add(handler as ReqruitBookEventHandler);
 
     return () => {
-      this.listeners.get(type)?.delete(handler as RecruitBookEventHandler);
+      this.listeners.get(type)?.delete(handler as ReqruitBookEventHandler);
     };
   }
 
-  public emit<T = any>(type: RecruitBookEventType, payload: T): void {
-    const event: RecruitBookEvent<T> = {
+  public emit<T = any>(type: ReqruitBookEventType, payload: T): void {
+    const event: ReqruitBookEvent<T> = {
       type,
       payload,
       timestamp: new Date().toISOString(),
-      source: "recruitbook-core",
+      source: "reqruitbook-core",
     };
 
     // 1. Notify internal subscribers
@@ -49,31 +49,31 @@ class RecruitBookBridge {
     // 2. Dispatch DOM custom event for vanilla/microfrontend host apps
     if (typeof window !== "undefined") {
       window.dispatchEvent(
-        new CustomEvent("recruitbook:event", { detail: event }),
+        new CustomEvent("reqruitbook:event", { detail: event }),
       );
 
       // 3. If running inside an iframe, post message to parent host
       if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ channel: "RECRUITBOOK_EVENT", event }, "*");
+        window.parent.postMessage({ channel: "REQRUITBOOK_EVENT", event }, "*");
       }
     }
   }
 
-  private notifySubscribers(key: string, event: RecruitBookEvent): void {
+  private notifySubscribers(key: string, event: ReqruitBookEvent): void {
     const handlers = this.listeners.get(key);
     if (handlers) {
       handlers.forEach((fn) => {
         try {
           fn(event);
         } catch (err) {
-          console.error(`[RecruitBookBridge] Error in listener for ${key}:`, err);
+          console.error(`[ReqruitBookBridge] Error in listener for ${key}:`, err);
         }
       });
     }
   }
 
   private handleWindowMessage(e: MessageEvent): void {
-    if (e.data?.channel === "RECRUITBOOK_HOST_ACTION") {
+    if (e.data?.channel === "REQRUITBOOK_HOST_ACTION") {
       const { type, payload } = e.data;
       this.emit(type, payload);
     }
@@ -85,4 +85,4 @@ class RecruitBookBridge {
   }
 }
 
-export const bridge = new RecruitBookBridge();
+export const bridge = new ReqruitBookBridge();

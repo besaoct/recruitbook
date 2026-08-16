@@ -7,12 +7,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "RecruitBook — Modern Recruitment & Talent Platform",
-    template: "%s · RecruitBook",
+    default: "ReqruitBook — Modern Recruitment & Talent Platform",
+    template: "%s · ReqruitBook",
   },
   description:
     "Recruitment management for high-growth teams: candidate pipelines, job requisitions, interviews, evaluations, offers, and talent analytics in one cohesive system.",
-  applicationName: "RecruitBook",
+  applicationName: "ReqruitBook",
   icons: {
     icon: "/logo.png",
     shortcut: "/logo.png",

@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { RecruitBookProvider } from "./context";
-import type { RecruitBookHostConfig, HiredCandidatePayload } from "./types";
+import { ReqruitBookProvider } from "./context";
+import type { ReqruitBookHostConfig, HiredCandidatePayload } from "./types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,27 +11,27 @@ import { ArrowUpRight, CheckCircle2, Building2, UserCheck, Sparkles } from "luci
 /**
  * Universal Embed Widget wrapper for host software (e.g. HRM, ERP)
  */
-export function RecruitBookEmbedContainer({
+export function ReqruitBookEmbedContainer({
   config,
   children,
   className = "",
 }: {
-  config?: RecruitBookHostConfig;
+  config?: ReqruitBookHostConfig;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
-    <RecruitBookProvider config={{ ...config, isEmbedded: true }}>
-      <div className={`recruitbook-embedded-widget font-sans antialiased text-foreground ${className}`}>
+    <ReqruitBookProvider config={{ ...config, isEmbedded: true }}>
+      <div className={`reqruitbook-embedded-widget font-sans antialiased text-foreground ${className}`}>
         {children}
       </div>
-    </RecruitBookProvider>
+    </ReqruitBookProvider>
   );
 }
 
 /**
  * Embeddable HRM Sync Card Component
- * Shows how RecruitBook synchronizes Hired candidates directly into an external HRM system.
+ * Shows how ReqruitBook synchronizes Hired candidates directly into an external HRM system.
  */
 export function HrmSyncCard({
   candidate,

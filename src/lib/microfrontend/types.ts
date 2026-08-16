@@ -1,13 +1,13 @@
 /**
- * RecruitBook Microfrontend & External Integration Architecture
+ * ReqruitBook Microfrontend & External Integration Architecture
  * 
  * Provides contract types for:
- * 1. Embedding RecruitBook inside host applications (HRM, ERP, ATS Hubs).
+ * 1. Embedding ReqruitBook inside host applications (HRM, ERP, ATS Hubs).
  * 2. Cross-microfrontend event communication.
  * 3. Hired candidate conversion payload to HRM/Payroll systems.
  */
 
-export type RecruitBookModuleSlug =
+export type ReqruitBookModuleSlug =
   | "dashboard"
   | "jobs"
   | "applications"
@@ -41,7 +41,7 @@ export interface HiredCandidatePayload {
   }[];
 }
 
-export type RecruitBookEventType =
+export type ReqruitBookEventType =
   | "candidate:hired"
   | "candidate:stage_changed"
   | "job:created"
@@ -53,24 +53,24 @@ export type RecruitBookEventType =
   | "application:received"
   | "navigate:requested";
 
-export interface RecruitBookEvent<T = any> {
-  type: RecruitBookEventType;
+export interface ReqruitBookEvent<T = any> {
+  type: ReqruitBookEventType;
   payload: T;
   timestamp: string;
-  source: "recruitbook-core" | "recruitbook-embed";
+  source: "reqruitbook-core" | "reqruitbook-embed";
 }
 
-export type RecruitBookEventHandler<T = any> = (event: RecruitBookEvent<T>) => void;
+export type ReqruitBookEventHandler<T = any> = (event: ReqruitBookEvent<T>) => void;
 
-export interface RecruitBookHostConfig {
+export interface ReqruitBookHostConfig {
   isEmbedded?: boolean;
   hostName?: string;
   activeDepartmentId?: string;
   theme?: "light" | "dark" | "system";
   onNavigate?: (path: string) => void;
   onCandidateHired?: (payload: HiredCandidatePayload) => void;
-  onEvent?: RecruitBookEventHandler;
+  onEvent?: ReqruitBookEventHandler;
   permissions?: string[];
-  hiddenModules?: RecruitBookModuleSlug[];
+  hiddenModules?: ReqruitBookModuleSlug[];
   readOnly?: boolean;
 }

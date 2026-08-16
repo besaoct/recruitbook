@@ -1,8 +1,8 @@
 {
-  "name": "recruitbook",
+  "name": "reqruitbook",
   "version": "1.0.0",
   "private": true,
-  "description": "RecruitBook — The Modern Recruitment & Talent Operating System",
+  "description": "ReqruitBook — The Modern Recruitment & Talent Operating System",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

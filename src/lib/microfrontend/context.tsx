@@ -1,29 +1,29 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useMemo } from "react";
-import type { RecruitBookHostConfig, RecruitBookEvent } from "./types";
+import type { ReqruitBookHostConfig, ReqruitBookEvent } from "./types";
 import { bridge } from "./bridge";
 
-interface RecruitBookContextValue extends RecruitBookHostConfig {
+interface ReqruitBookContextValue extends ReqruitBookHostConfig {
   emitEvent: (type: any, payload: any) => void;
 }
 
-const RecruitBookContext = createContext<RecruitBookContextValue>({
+const ReqruitBookContext = createContext<ReqruitBookContextValue>({
   isEmbedded: false,
   hostName: undefined,
   emitEvent: (type, payload) => bridge.emit(type, payload),
 });
 
-export function RecruitBookProvider({
+export function ReqruitBookProvider({
   config = {},
   children,
 }: {
-  config?: RecruitBookHostConfig;
+  config?: ReqruitBookHostConfig;
   children: React.ReactNode;
 }) {
   useEffect(() => {
     if (config.onEvent) {
-      const unsub = bridge.subscribe("*", (evt: RecruitBookEvent) => {
+      const unsub = bridge.subscribe("*", (evt: ReqruitBookEvent) => {
         config.onEvent?.(evt);
       });
       return unsub;
@@ -55,12 +55,12 @@ export function RecruitBookProvider({
   );
 
   return (
-    <RecruitBookContext.Provider value={value}>
+    <ReqruitBookContext.Provider value={value}>
       {children}
-    </RecruitBookContext.Provider>
+    </ReqruitBookContext.Provider>
   );
 }
 
-export function useRecruitBook() {
-  return useContext(RecruitBookContext);
+export function useReqruitBook() {
+  return useContext(ReqruitBookContext);
 }

@@ -1,4 +1,4 @@
-# RecruitBook
+# ReqruitBook
 <div align="center">
 
 **The Modern Recruitment & Talent Operating System**
@@ -49,8 +49,8 @@ A full-stack, enterprise-grade Applicant Tracking System (ATS) and Recruitment M
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-org/recruitbook.git
-cd recruitbook
+git clone https://github.com/your-org/reqruitbook.git
+cd reqruitbook
 npm install
 ```
 
@@ -65,7 +65,7 @@ cp .env.example .env
 Configure your PostgreSQL database connection:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/recruitbook"
+DATABASE_URL="postgresql://user:password@localhost:5432/reqruitbook"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 SESSION_SECRET="your-secure-random-secret-key"
 ```

@@ -7,7 +7,7 @@ dotenv.config({ path: ".env" });
 
 const connectionString =
   process.env.DATABASE_URL ||
-  "postgresql://postgres:postgres@localhost:5432/recruitbook";
+  "postgresql://postgres:postgres@localhost:5432/reqruitbook";
 
 // Use Neon HTTP client for sub-second, connection-pool-free serverless queries
 const sql = neon(connectionString);

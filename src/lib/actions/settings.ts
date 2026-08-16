@@ -86,7 +86,7 @@ export async function createUser(data: {
   if (!currentUser) throw new Error("Unauthenticated");
   assertPermission(currentUser.role, "canManageUsers", currentUser.permissions);
 
-  const passwordHash = await hashPassword(data.password || "RecruitBook2026!");
+  const passwordHash = await hashPassword(data.password || "ReqruitBook2026!");
   const newId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
   await db.insert(users).values({

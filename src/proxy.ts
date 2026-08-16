@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const SESSION_COOKIE_NAME = "recruitbook_session";
+const SESSION_COOKIE_NAME = "reqruitbook_session";
 
 // Public paths that do not require authentication
 const PUBLIC_PREFIXES = [

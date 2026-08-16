@@ -5,7 +5,7 @@ dotenv.config({ path: ".env" });
 
 const connectionString =
   process.env.DATABASE_URL ||
-  "postgresql://postgres:postgres@localhost:5432/recruitbook";
+  "postgresql://postgres:postgres@localhost:5432/reqruitbook";
 
 const sql = neon(connectionString);
 

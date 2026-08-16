@@ -138,7 +138,7 @@ function SettingsContent() {
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserPassword, setNewUserPassword] = useState("RecruitBook2026!");
+  const [newUserPassword, setNewUserPassword] = useState("ReqruitBook2026!");
   const [newUserRole, setNewUserRole] = useState<string>("recruiter");
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
@@ -471,11 +471,11 @@ function SettingsContent() {
   };
 
   const embedCodeSnippet = `// 1. Host Application React Microfrontend Import
-import { RecruitBookEmbedContainer, CandidatePipelineEmbed } from "@recruitbook/embed-sdk";
+import { ReqruitBookEmbedContainer, CandidatePipelineEmbed } from "@reqruitbook/embed-sdk";
 
 export function HostHrmRecruitmentView() {
   return (
-    <RecruitBookEmbedContainer
+    <ReqruitBookEmbedContainer
       config={{
         isEmbedded: true,
         hostName: "My Organisation HRM & Payroll Suite",
@@ -486,7 +486,7 @@ export function HostHrmRecruitmentView() {
       }}
     >
       <CandidatePipelineEmbed departmentId="dept_eng" />
-    </RecruitBookEmbedContainer>
+    </ReqruitBookEmbedContainer>
   );
 }`;
 
@@ -1080,7 +1080,7 @@ export function HostHrmRecruitmentView() {
                   <div>
                     <CardTitle className="text-sm font-semibold">Microfrontend Architecture SDK</CardTitle>
                     <CardDescription className="text-xs">
-                      Embed RecruitBook ATS modules directly inside My Organisation HRM
+                      Embed ReqruitBook ATS modules directly inside My Organisation HRM
                     </CardDescription>
                   </div>
                   <Button
