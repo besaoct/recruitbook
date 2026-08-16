@@ -144,32 +144,52 @@ function NavItem({
         </TooltipTrigger>
         <TooltipContent
           side="right"
-          sideOffset={10}
-          className={cn(
-            "z-50 shadow-md",
-            hasChildren ? "flex flex-col gap-1.5 p-2.5 min-w-[150px]" : "flex items-center gap-2 px-2.5 py-1.5",
-          )}
+          sideOffset={8}
+          className="z-50 shadow-md p-1 min-w-[170px] pointer-events-auto bg-popover text-popover-foreground border border-border"
         >
-          <div className="flex items-center justify-between gap-2 font-medium">
+          {/* Main Item Link */}
+          <Link
+            href={item.href}
+            className={cn(
+              "flex items-center justify-between gap-2 px-2 py-1 text-xs font-medium rounded-xs transition-colors",
+              !hasChildren && active
+                ? "bg-shell-active text-shell-active-foreground font-semibold"
+                : "hover:bg-muted/80 text-foreground",
+            )}
+          >
             <span>{item.label}</span>
             {item.badge ? (
               <span className="rounded-full bg-copper/20 text-copper border border-copper/30 px-1.5 py-0.2 text-[10px] font-bold">
                 {item.badge > 99 ? "99+" : item.badge}
               </span>
             ) : null}
-          </div>
+          </Link>
+
+          {/* Collapsible Sublinks */}
           {hasChildren && item.children && item.children.length > 0 && (
-            <div className="flex flex-col gap-1 pt-1.5 border-t border-border/50 text-[11px] text-muted-foreground">
-              {item.children.map((child) => (
-                <div key={child.href} className="flex items-center justify-between gap-2">
-                  <span className="truncate">{child.label}</span>
-                  {child.badge ? (
-                    <span className="text-[10px] font-semibold text-copper">
-                      {child.badge}
-                    </span>
-                  ) : null}
-                </div>
-              ))}
+            <div className="flex flex-col gap-0.5 mt-1 pt-1 border-t border-border/60">
+              {item.children.map((child) => {
+                const childIsActive = isExactActive(pathname, searchParams, child.href);
+                return (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    className={cn(
+                      "flex items-center justify-between gap-2 px-2 py-1 text-[11px] rounded-xs transition-colors",
+                      childIsActive
+                        ? "bg-shell-active text-shell-active-foreground font-semibold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/80",
+                    )}
+                  >
+                    <span className="truncate">{child.label}</span>
+                    {child.badge ? (
+                      <span className="text-[10px] font-semibold text-copper">
+                        {child.badge}
+                      </span>
+                    ) : null}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </TooltipContent>
