@@ -1,6 +1,4 @@
 # RecruitBook
-
-
 <div align="center">
 
 **The Modern Recruitment & Talent Operating System**
@@ -16,6 +14,10 @@ A full-stack, enterprise-grade Applicant Tracking System (ATS) and Recruitment M
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16^-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 </div>
+
+
+<img width="1674" height="788" alt="Screenshot 2026-08-16 at 2 01 17 PM" src="https://github.com/user-attachments/assets/4df6e515-bd8c-4375-802a-a2be654d2901" />
+
 
 ---
 
