@@ -86,19 +86,32 @@ export async function getJobById(id: string) {
       .select({
         id: jobOpenings.id,
         title: jobOpenings.title,
+        reqCode: jobOpenings.reqCode,
         status: jobOpenings.status,
         workMode: jobOpenings.workMode,
         employmentType: jobOpenings.employmentType,
+        experienceLevel: jobOpenings.experienceLevel,
+        educationLevel: jobOpenings.educationLevel,
         vacancies: jobOpenings.vacancies,
         locationText: jobOpenings.locationText,
         salaryMin: jobOpenings.salaryMin,
         salaryMax: jobOpenings.salaryMax,
         currency: jobOpenings.currency,
+        payFrequency: jobOpenings.payFrequency,
+        isSalaryPublic: jobOpenings.isSalaryPublic,
+        equityRange: jobOpenings.equityRange,
+        bonusStructure: jobOpenings.bonusStructure,
+        relocationAssistance: jobOpenings.relocationAssistance,
+        targetStartDate: jobOpenings.targetStartDate,
         summary: jobOpenings.summary,
         responsibilities: jobOpenings.responsibilities,
         requirements: jobOpenings.requirements,
+        niceToHave: jobOpenings.niceToHave,
+        aboutTeam: jobOpenings.aboutTeam,
         benefits: jobOpenings.benefits,
+        benefitsList: jobOpenings.benefitsList,
         skills: jobOpenings.skills,
+        secondarySkills: jobOpenings.secondarySkills,
         customQuestions: jobOpenings.customQuestions,
         publishedAt: jobOpenings.publishedAt,
         createdAt: jobOpenings.createdAt,
@@ -127,20 +140,36 @@ export async function getJobById(id: string) {
 
 export async function createJob(data: {
   title: string;
+  reqCode?: string;
   departmentId?: string;
   locationId?: string;
   locationText?: string;
-  workMode?: "on_site" | "remote" | "hybrid";
-  employmentType?: "full_time" | "part_time" | "contract" | "internship";
+  workMode?: string;
+  employmentType?: string;
+  experienceLevel?: string;
+  educationLevel?: string;
   vacancies?: number;
   salaryMin?: number;
   salaryMax?: number;
   currency?: string;
+  payFrequency?: string;
+  isSalaryPublic?: boolean;
+  equityRange?: string;
+  bonusStructure?: string;
+  relocationAssistance?: string;
+  targetStartDate?: Date | null;
   summary?: string;
   responsibilities?: string;
   requirements?: string;
+  niceToHave?: string;
+  aboutTeam?: string;
   benefits?: string;
+  benefitsList?: { id?: string; title: string; description?: string; category?: string; icon?: string }[];
   skills?: string[];
+  secondarySkills?: string[];
+  customQuestions?: any[];
+  hiringManagerId?: string;
+  recruiterId?: string;
   status?: "draft" | "published" | "on_hold" | "closed";
 }) {
   const user = await getCurrentUser();
@@ -157,22 +186,37 @@ export async function createJob(data: {
     id: newId,
     orgId,
     title: data.title,
+    reqCode: data.reqCode || `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
     departmentId: data.departmentId || null,
     locationId: data.locationId || null,
     locationText: data.locationText || "San Francisco, CA / Remote",
     workMode: data.workMode || "hybrid",
     employmentType: data.employmentType || "full_time",
+    experienceLevel: data.experienceLevel || "mid",
+    educationLevel: data.educationLevel || "bachelors",
     vacancies: data.vacancies || 1,
-    recruiterId: user.id,
+    hiringManagerId: data.hiringManagerId || null,
+    recruiterId: data.recruiterId || user.id,
     salaryMin: data.salaryMin || 100000,
     salaryMax: data.salaryMax || 150000,
     currency: data.currency || "USD",
+    payFrequency: data.payFrequency || "annual",
+    isSalaryPublic: data.isSalaryPublic !== undefined ? data.isSalaryPublic : true,
+    equityRange: data.equityRange || null,
+    bonusStructure: data.bonusStructure || null,
+    relocationAssistance: data.relocationAssistance || null,
+    targetStartDate: data.targetStartDate || null,
     status,
     summary: data.summary || "",
-    responsibilities: data.responsibilities || "",
+    responsibilities: data.responsibilities || data.summary || "",
     requirements: data.requirements || "",
+    niceToHave: data.niceToHave || "",
+    aboutTeam: data.aboutTeam || "",
     benefits: data.benefits || "",
+    benefitsList: data.benefitsList || [],
     skills: data.skills || [],
+    secondarySkills: data.secondarySkills || [],
+    customQuestions: data.customQuestions || [],
     publishedAt: status === "published" ? new Date() : null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -189,20 +233,37 @@ export async function updateJob(
   id: string,
   data: Partial<{
     title: string;
+    reqCode: string;
     departmentId: string | null;
     locationId: string | null;
     locationText: string;
-    workMode: "on_site" | "remote" | "hybrid";
-    employmentType: "full_time" | "part_time" | "contract" | "internship";
+    workMode: string;
+    employmentType: string;
+    experienceLevel: string;
+    educationLevel: string;
     vacancies: number;
     salaryMin: number;
     salaryMax: number;
+    currency: string;
+    payFrequency: string;
+    isSalaryPublic: boolean;
+    equityRange: string | null;
+    bonusStructure: string | null;
+    relocationAssistance: string | null;
+    targetStartDate: Date | null;
     status: "draft" | "published" | "on_hold" | "closed";
     summary: string;
     responsibilities: string;
     requirements: string;
+    niceToHave: string;
+    aboutTeam: string;
     benefits: string;
+    benefitsList: { id?: string; title: string; description?: string; category?: string; icon?: string }[];
     skills: string[];
+    secondarySkills: string[];
+    customQuestions: any[];
+    hiringManagerId: string | null;
+    recruiterId: string | null;
   }>,
 ) {
   const user = await getCurrentUser();

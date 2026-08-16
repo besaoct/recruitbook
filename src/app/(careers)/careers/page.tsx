@@ -163,41 +163,76 @@ export default function CareersPublicPage() {
             {filtered.map((job) => (
               <Card
                 key={job.id}
-                className="shadow-none border border-border hover:border-copper transition-all p-4 flex flex-col justify-between"
+                className="shadow-none border border-border hover:border-copper transition-all p-4 flex flex-col justify-between group"
               >
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="font-semibold text-sm text-foreground">
-                        {job.title}
-                      </h3>
+                      <Link href={`/careers/apply/${job.id}`}>
+                        <h3 className="font-semibold text-sm text-foreground group-hover:text-copper transition-colors">
+                          {job.title}
+                        </h3>
+                      </Link>
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
                         <span className="flex items-center gap-1">
-                          <Building2 className="size-3 text-muted-foreground" />
+                          <Building2 className="size-3 text-copper" />
                           <span>{job.departmentName || "Engineering"}</span>
                         </span>
                         <span>•</span>
                         <span className="flex items-center gap-1">
-                          <MapPin className="size-3 text-muted-foreground" />
+                          <MapPin className="size-3 text-copper" />
                           <span>{job.locationName || job.locationText}</span>
                         </span>
                       </div>
                     </div>
 
-                    <Badge variant="outline" className="capitalize text-[10px]">
-                      {job.workMode.replace("_", " ")}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="outline" className="capitalize text-[10px] bg-card border-copper/30 text-copper">
+                        {job.workMode?.replace(/_/g, " ")}
+                      </Badge>
+                      {job.employmentType && (
+                        <Badge variant="outline" className="capitalize text-[10px] bg-card border-border text-muted-foreground">
+                          {job.employmentType?.replace(/_/g, " ")}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                    {job.summary || "Join our fast growing team to solve interesting challenges at scale."}
+                    {job.summary
+                      ? job.summary.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").trim()
+                      : "Join our fast growing team to solve interesting challenges at scale."}
                   </p>
+
+                  {job.skills && Array.isArray(job.skills) && job.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {job.skills.slice(0, 4).map((s: string) => (
+                        <Badge key={s} variant="outline" className="text-[10px] px-1.5 py-0 border-border bg-muted/30 text-muted-foreground">
+                          {s}
+                        </Badge>
+                      ))}
+                      {job.skills.length > 4 && (
+                        <span className="text-[10px] text-muted-foreground self-center">
+                          +{job.skills.length - 4} more
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-4 mt-3 border-t border-border flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground">
-                    ${(job.salaryMin || 0).toLocaleString()} – ${(job.salaryMax || 0).toLocaleString()} USD
-                  </span>
+                  <div>
+                    {job.salaryMin ? (
+                      <span className="text-xs font-bold text-copper font-mono">
+                        {job.currency || "$"} {(job.salaryMin || 0).toLocaleString()} – {(job.salaryMax || 0).toLocaleString()}
+                        <span className="text-[10px] text-muted-foreground font-normal ml-1">
+                          / {job.payFrequency === "hourly" ? "hr" : "yr"}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Competitive Compensation</span>
+                    )}
+                  </div>
 
                   <Link href={`/careers/apply/${job.id}`}>
                     <Button size="xs" variant="accent" className="gap-1 text-xs">

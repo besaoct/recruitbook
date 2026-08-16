@@ -1,20 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import {
+  TableShell,
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  THead,
+  TH,
+  SortableTH,
+  TBody,
+  TR,
+  TD,
+  EmptyRow,
+  ClientPagination,
+} from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { cn } from "@/lib/utils";
@@ -26,20 +29,15 @@ import {
   ExternalLink,
   MapPin,
   Loader2,
-  MoreHorizontal,
   Copy,
   Trash2,
   Edit2,
   CheckCircle2,
   XCircle,
+  Briefcase,
+  DollarSign,
+  Laptop,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { getJobs, updateJob, deleteJob, duplicateJob } from "@/lib/actions/jobs";
 import { RoleGuard } from "@/components/auth/role-guard";
 import { toast } from "sonner";
@@ -63,14 +61,11 @@ function JobsContent() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Edit modal state
-  const [editingJob, setEditingJob] = useState<any>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editStatus, setEditStatus] = useState<any>("published");
-  const [editSalaryMin, setEditSalaryMin] = useState(100000);
-  const [editSalaryMax, setEditSalaryMax] = useState(150000);
-  const [editVacancies, setEditVacancies] = useState(1);
-  const [isSaving, setIsSaving] = useState(false);
+  // Sorting and Client Pagination
+  const [sortField, setSortField] = useState<string>("title");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
   const loadJobs = async () => {
     setLoading(true);
@@ -80,6 +75,7 @@ function JobsContent() {
         search: searchQuery || undefined,
       });
       setJobs(data);
+      setPage(1);
     } catch (error) {
       console.error("Failed to load jobs:", error);
       toast.error("Failed to load job openings");
@@ -100,36 +96,6 @@ function JobsContent() {
     setFilter(newFilter);
     const targetUrl = newFilter === "all" ? "/jobs" : `/jobs?status=${newFilter}`;
     router.replace(targetUrl);
-  };
-
-  const handleOpenEdit = (job: any) => {
-    setEditingJob(job);
-    setEditTitle(job.title);
-    setEditStatus(job.status);
-    setEditSalaryMin(job.salaryMin || 100000);
-    setEditSalaryMax(job.salaryMax || 150000);
-    setEditVacancies(job.vacancies || 1);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingJob) return;
-    setIsSaving(true);
-    try {
-      await updateJob(editingJob.id, {
-        title: editTitle,
-        status: editStatus,
-        salaryMin: Number(editSalaryMin),
-        salaryMax: Number(editSalaryMax),
-        vacancies: Number(editVacancies),
-      });
-      toast.success("Job requisition updated successfully!");
-      setEditingJob(null);
-      await loadJobs();
-    } catch {
-      toast.error("Failed to update job");
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const handleDelete = async (id: string, title: string) => {
@@ -163,10 +129,37 @@ function JobsContent() {
     }
   };
 
+  const handleSort = (field: string, direction: "asc" | "desc") => {
+    setSortField(field);
+    setSortDirection(direction);
+  };
+
+  // Processed sorted & paginated jobs
+  const sortedJobs = useMemo(() => {
+    return [...jobs].sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+
+      if (typeof aVal === "string") {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal || "").toLowerCase();
+      }
+
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [jobs, sortField, sortDirection]);
+
+  const paginatedJobs = useMemo(() => {
+    const from = (page - 1) * pageSize;
+    return sortedJobs.slice(from, from + pageSize);
+  }, [sortedJobs, page, pageSize]);
+
   return (
-    <div className="page">
+    <div className="page space-y-4">
       <PageHeader
-        title="Job Openings & Requisitions"
+        title="Job Openings &amp; Requisitions"
         description="Create, publish, and manage hiring requisitions across global departments."
         actions={
           <RoleGuard permission="canCreateJobs">
@@ -195,10 +188,10 @@ function JobsContent() {
               type="button"
               onClick={() => handleFilterChange(tab.id)}
               className={cn(
-                "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap",
+                "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap cursor-pointer",
                 filter === tab.id
                   ? "border-copper text-foreground font-semibold"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
+                  : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
               {tab.label}
@@ -207,105 +200,156 @@ function JobsContent() {
         </div>
 
         <div className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search requisitions..."
+            placeholder="Search requisition or code..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 h-7 text-xs bg-card"
+            className="pl-8 h-8 text-xs bg-card"
           />
         </div>
       </div>
 
-      {/* Jobs Table */}
-      <Card className="shadow-none overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-            <Loader2 className="size-4 animate-spin text-copper" />
-            <span>Loading job requisitions from database...</span>
-          </div>
-        ) : jobs.length === 0 ? (
-          <div className="p-12 text-center text-xs text-muted-foreground space-y-2">
-            <div>No requisitions found matching your filter.</div>
-            <RoleGuard permission="canCreateJobs">
-              <Link href="/jobs/new">
-                <Button size="xs" variant="outline" className="gap-1 mt-2">
-                  <Plus className="size-3" />
-                  <span>Create First Requisition</span>
-                </Button>
-              </Link>
-            </RoleGuard>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="text-xs">
-                <TableHead>Requisition</TableHead>
-                <TableHead>Department &amp; Location</TableHead>
-                <TableHead>Work Mode</TableHead>
-                <TableHead>Compensation</TableHead>
-                <TableHead>Applicants</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {jobs.map((job) => (
-                <TableRow key={job.id} className="text-xs">
-                  <TableCell className="font-medium">
-                    <div>
-                      <span className="font-semibold text-foreground text-sm block">
+      {/* StoqBook TableShell */}
+      <TableShell>
+        <Table>
+          <THead>
+            <SortableTH
+              field="title"
+              currentSort={sortField === "title" ? (sortDirection === "asc" ? "title" : "-title") : ""}
+              onSort={handleSort}
+            >
+              Job Title &amp; Ref
+            </SortableTH>
+            <TH>Department</TH>
+            <TH>Location &amp; Work Mode</TH>
+            <SortableTH
+              field="salaryMin"
+              currentSort={sortField === "salaryMin" ? (sortDirection === "asc" ? "salaryMin" : "-salaryMin") : ""}
+              onSort={handleSort}
+            >
+              Salary Range
+            </SortableTH>
+            <TH align="center">Applicants</TH>
+            <TH>Status</TH>
+            <TH align="right">Actions</TH>
+          </THead>
+          <TBody>
+            {loading ? (
+              <EmptyRow colSpan={7}>
+                <div className="flex flex-col items-center justify-center gap-2 py-4">
+                  <Loader2 className="size-5 animate-spin text-copper" />
+                  <span className="text-xs text-muted-foreground">Loading requisitions...</span>
+                </div>
+              </EmptyRow>
+            ) : paginatedJobs.length === 0 ? (
+              <EmptyRow colSpan={7}>
+                <div className="py-6 text-center space-y-2">
+                  <p className="text-xs text-muted-foreground">No job requisitions match your criteria.</p>
+                  <RoleGuard permission="canCreateJobs">
+                    <Link href="/jobs/new">
+                      <Button size="xs" variant="outline" className="gap-1 text-xs">
+                        <Plus className="size-3" />
+                        <span>Post First Requisition</span>
+                      </Button>
+                    </Link>
+                  </RoleGuard>
+                </div>
+              </EmptyRow>
+            ) : (
+              paginatedJobs.map((job) => (
+                <TR key={job.id} muted={job.status === "closed"}>
+                  {/* Job Title & Ref */}
+                  <TD>
+                    <div className="flex flex-col gap-0.5">
+                      <Link
+                        href={`/jobs/${job.id}/edit`}
+                        className="font-semibold text-xs text-foreground hover:text-copper transition-colors"
+                      >
                         {job.title}
-                      </span>
-                      <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
-                        <span>{job.vacancies} {job.vacancies === 1 ? "vacancy" : "vacancies"}</span>
+                      </Link>
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        {job.reqCode && (
+                          <span className="font-mono text-[10px] text-muted-foreground">
+                            {job.reqCode}
+                          </span>
+                        )}
                         <span>•</span>
-                        <span>Recruiter: {job.recruiterName || "Unassigned"}</span>
+                        <span className="capitalize">{job.employmentType?.replace(/_/g, " ")}</span>
+                        {job.experienceLevel && (
+                          <>
+                            <span>•</span>
+                            <span className="capitalize">{job.experienceLevel.replace(/_/g, " ")}</span>
+                          </>
+                        )}
                       </div>
                     </div>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-1 font-medium text-foreground">
-                        <Building2 className="size-3 text-muted-foreground" />
-                        <span>{job.departmentName || "General"}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <MapPin className="size-3 text-muted-foreground" />
-                        <span>{job.locationName || job.locationText}</span>
-                      </div>
+                  {/* Department */}
+                  <TD>
+                    <div className="flex items-center gap-1.5 text-xs text-foreground">
+                      <Building2 className="size-3 text-copper shrink-0" />
+                      <span>{job.departmentName || "Engineering"}</span>
                     </div>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
-                    <Badge variant="outline" className="capitalize text-[10px]">
-                      {job.workMode.replace("_", " ")}
-                    </Badge>
-                  </TableCell>
+                  {/* Location & Work Mode */}
+                  <TD>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="size-3 text-copper shrink-0" />
+                        <span>{job.locationName || job.locationText || "Remote"}</span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] uppercase font-semibold border-border bg-card px-1.5 py-0">
+                        {job.workMode?.replace(/_/g, " ")}
+                      </Badge>
+                    </div>
+                  </TD>
 
-                  <TableCell>
-                    <span className="text-xs text-foreground">
-                      ${(job.salaryMin || 0).toLocaleString()} – ${(job.salaryMax || 0).toLocaleString()}
-                    </span>
-                  </TableCell>
+                  {/* Compensation Band */}
+                  <TD>
+                    {job.salaryMin ? (
+                      <span className="text-xs font-mono font-medium text-foreground">
+                        {job.currency || "$"}{(job.salaryMin || 0).toLocaleString()} – {(job.salaryMax || 0).toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">—</span>
+                    )}
+                  </TD>
 
-                  <TableCell>
+                  {/* Applicants */}
+                  <TD align="center">
                     <Link
                       href={`/applications?jobId=${job.id}`}
-                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-xs bg-muted/60 hover:bg-copper/10 hover:text-copper transition-colors"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-xs bg-muted/60 hover:bg-copper/10 hover:text-copper transition-colors text-xs font-medium"
                     >
                       <Users className="size-3 text-muted-foreground" />
                       <span className="font-semibold">{job.applicantCount || 0}</span>
                     </Link>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Status */}
+                  <TD>
                     <StatusBadge status={job.status} />
-                  </TableCell>
+                  </TD>
 
-                  <TableCell className="text-right">
+                  {/* Actions */}
+                  <TD align="right">
                     <div className="flex items-center justify-end gap-1">
+                      {job.status === "published" && (
+                        <Link href={`/careers/apply/${job.id}`} target="_blank">
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            title="View on Careers"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-copper"
+                          >
+                            <ExternalLink className="size-3.5" />
+                          </Button>
+                        </Link>
+                      )}
+
                       <RoleGuard permission="canEditJobs">
                         {job.status === "published" ? (
                           <Button
@@ -323,7 +367,7 @@ function JobsContent() {
                             variant="ghost"
                             title="Publish Requisition"
                             onClick={() => handleQuickStatusChange(job.id, "published")}
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-success"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-emerald-600"
                           >
                             <CheckCircle2 className="size-3.5" />
                           </Button>
@@ -342,16 +386,18 @@ function JobsContent() {
                         </Button>
                       </RoleGuard>
 
+                      {/* Direct Edit Page Link */}
                       <RoleGuard permission="canEditJobs">
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          title="Edit Job"
-                          onClick={() => handleOpenEdit(job)}
-                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                        >
-                          <Edit2 className="size-3.5" />
-                        </Button>
+                        <Link href={`/jobs/${job.id}/edit`}>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            title="Edit Full Requisition"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-copper"
+                          >
+                            <Edit2 className="size-3.5" />
+                          </Button>
+                        </Link>
                       </RoleGuard>
 
                       <RoleGuard permission="canDeleteJobs">
@@ -366,108 +412,36 @@ function JobsContent() {
                         </Button>
                       </RoleGuard>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
+                  </TD>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </Table>
 
-      {/* Edit Job Modal */}
-      <Dialog open={!!editingJob} onOpenChange={(open) => !open && setEditingJob(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base font-semibold">Edit Requisition</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2 text-xs">
-            <div className="space-y-1">
-              <label className="field-label">Job Title</label>
-              <Input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="field-label">Status</label>
-                <select
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value as any)}
-                  className="w-full h-8 px-2 text-xs rounded-xs border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-copper"
-                >
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                  <option value="on_hold">On Hold</option>
-                  <option value="closed">Closed</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="field-label">Vacancies</label>
-                <Input
-                  type="number"
-                  value={editVacancies}
-                  onChange={(e) => setEditVacancies(Number(e.target.value))}
-                  className="h-8 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="field-label">Min Salary ($)</label>
-                <Input
-                  type="number"
-                  value={editSalaryMin}
-                  onChange={(e) => setEditSalaryMin(Number(e.target.value))}
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="field-label">Max Salary ($)</label>
-                <Input
-                  type="number"
-                  value={editSalaryMax}
-                  onChange={(e) => setEditSalaryMax(Number(e.target.value))}
-                  className="h-8 text-xs"
-                />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              size="xs"
-              variant="outline"
-              onClick={() => setEditingJob(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              size="xs"
-              variant="accent"
-              disabled={isSaving}
-              onClick={handleSaveEdit}
-              className="gap-1"
-            >
-              {isSaving ? <Loader2 className="size-3 animate-spin" /> : null}
-              <span>Save Changes</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* StoqBook ClientPagination */}
+        <ClientPagination
+          page={page}
+          limit={pageSize}
+          total={jobs.length}
+          onPageChange={setPage}
+          onLimitChange={setPageSize}
+          limitOptions={[10, 25, 50, 100]}
+        />
+      </TableShell>
     </div>
   );
 }
 
 export default function JobsPage() {
   return (
-    <Suspense fallback={<div className="page p-8 text-xs text-muted-foreground">Loading jobs...</div>}>
+    <Suspense
+      fallback={
+        <div className="page flex items-center justify-center p-12">
+          <Loader2 className="size-6 animate-spin text-copper" />
+        </div>
+      }
+    >
       <JobsContent />
     </Suspense>
   );

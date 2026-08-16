@@ -60,11 +60,39 @@ import {
   deleteUser,
   getDepartments,
   createDepartment,
+  updateDepartment,
   deleteDepartment,
   getLocations,
   createLocation,
+  updateLocation,
   deleteLocation,
+  getWorkModes,
+  createWorkMode,
+  updateWorkMode,
+  deleteWorkMode,
+  getEmploymentTypes,
+  createEmploymentType,
+  updateEmploymentType,
+  deleteEmploymentType,
+  getExperienceLevels,
+  createExperienceLevel,
+  updateExperienceLevel,
+  deleteExperienceLevel,
+  getEducationLevels,
+  createEducationLevel,
+  updateEducationLevel,
+  deleteEducationLevel,
 } from "@/lib/actions/settings";
+import {
+  TableShell,
+  Table as DTable,
+  THead,
+  TH,
+  TBody,
+  TR,
+  TD,
+  EmptyRow,
+} from "@/components/shared/data-table";
 import {
   getRoles,
   createRole,
@@ -94,11 +122,55 @@ function SettingsContent() {
     if (tab === "rbac" || tab === "permissions") return "rbac";
     if (tab === "departments") return "departments";
     if (tab === "locations") return "locations";
+    if (tab === "work-modes" || tab === "work_modes") return "work-modes";
+    if (tab === "employment-types" || tab === "employment_types") return "employment-types";
+    if (tab === "experience-levels" || tab === "experience_levels") return "experience-levels";
+    if (tab === "education-levels" || tab === "education_levels") return "education-levels";
     if (tab === "integrations") return "integrations";
     return "company";
   };
 
   const [activeTab, setActiveTab] = useState(normalizeTab(rawTab));
+
+  const canViewCompany = isSuperAdmin || hasPermission("canManageSettings");
+  const canViewRBAC = canManageRBAC;
+  const canViewUsers = isSuperAdmin || hasPermission("canManageUsers") || canManageRBAC;
+  const canViewDepts = isSuperAdmin || hasPermission("canManageDepartments") || hasPermission("canManageSettings");
+  const canViewLocations = isSuperAdmin || hasPermission("canManageLocations") || hasPermission("canManageSettings");
+  const canViewWorkModes = isSuperAdmin || hasPermission("canManageWorkModes") || hasPermission("canManageSettings");
+  const canViewEmpTypes = isSuperAdmin || hasPermission("canManageEmploymentTypes") || hasPermission("canManageSettings");
+  const canViewExpLevels = isSuperAdmin || hasPermission("canManageExperienceLevels") || hasPermission("canManageSettings");
+  const canViewEduLevels = isSuperAdmin || hasPermission("canManageEducationLevels") || hasPermission("canManageSettings");
+  const canViewSDK = isSuperAdmin || hasPermission("canManageSettings");
+
+  useEffect(() => {
+    if (!rawTab) {
+      if (canViewCompany) setActiveTab("company");
+      else if (canViewDepts) setActiveTab("departments");
+      else if (canViewLocations) setActiveTab("locations");
+      else if (canViewWorkModes) setActiveTab("work-modes");
+      else if (canViewEmpTypes) setActiveTab("employment-types");
+      else if (canViewExpLevels) setActiveTab("experience-levels");
+      else if (canViewEduLevels) setActiveTab("education-levels");
+      else if (canViewUsers) setActiveTab("users");
+      else if (canViewRBAC) setActiveTab("rbac");
+      else if (canViewSDK) setActiveTab("integrations");
+    } else {
+      setActiveTab(normalizeTab(rawTab));
+    }
+  }, [
+    rawTab,
+    canViewCompany,
+    canViewDepts,
+    canViewLocations,
+    canViewWorkModes,
+    canViewEmpTypes,
+    canViewExpLevels,
+    canViewEduLevels,
+    canViewUsers,
+    canViewRBAC,
+    canViewSDK,
+  ]);
 
   // Data states
   const [, setOrg] = useState<any>(null);
@@ -106,6 +178,10 @@ function SettingsContent() {
   const [rolesList, setRolesList] = useState<RoleWithUsers[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
+  const [workModesList, setWorkModesList] = useState<any[]>([]);
+  const [employmentTypesList, setEmploymentTypesList] = useState<any[]>([]);
+  const [experienceLevelsList, setExperienceLevelsList] = useState<any[]>([]);
+  const [educationLevelsList, setEducationLevelsList] = useState<any[]>([]);
   const [, setLoading] = useState(true);
 
   // Org form state
@@ -155,17 +231,89 @@ function SettingsContent() {
   const [newLocCountry, setNewLocCountry] = useState("United States");
   const [isCreatingLoc, setIsCreatingLoc] = useState(false);
 
+  // Add Work Mode Modal
+  const [workModeModalOpen, setWorkModeModalOpen] = useState(false);
+  const [newWorkModeName, setNewWorkModeName] = useState("");
+  const [newWorkModeSlug, setNewWorkModeSlug] = useState("");
+  const [newWorkModeDesc, setNewWorkModeDesc] = useState("");
+  const [isCreatingWorkMode, setIsCreatingWorkMode] = useState(false);
+
+  // Add Employment Type Modal
+  const [empTypeModalOpen, setEmpTypeModalOpen] = useState(false);
+  const [newEmpTypeName, setNewEmpTypeName] = useState("");
+  const [newEmpTypeSlug, setNewEmpTypeSlug] = useState("");
+  const [newEmpTypeDesc, setNewEmpTypeDesc] = useState("");
+  const [isCreatingEmpType, setIsCreatingEmpType] = useState(false);
+
+  // Add Experience Level Modal
+  const [expLevelModalOpen, setExpLevelModalOpen] = useState(false);
+  const [newExpLevelName, setNewExpLevelName] = useState("");
+  const [newExpLevelSlug, setNewExpLevelSlug] = useState("");
+  const [newExpLevelMinYears, setNewExpLevelMinYears] = useState(0);
+  const [newExpLevelMaxYears, setNewExpLevelMaxYears] = useState(2);
+  const [newExpLevelDesc, setNewExpLevelDesc] = useState("");
+  const [isCreatingExpLevel, setIsCreatingExpLevel] = useState(false);
+
+  // Add Education Level Modal
+  const [eduLevelModalOpen, setEduLevelModalOpen] = useState(false);
+  const [newEduLevelName, setNewEduLevelName] = useState("");
+  const [newEduLevelSlug, setNewEduLevelSlug] = useState("");
+  const [newEduLevelDesc, setNewEduLevelDesc] = useState("");
+  const [isCreatingEduLevel, setIsCreatingEduLevel] = useState(false);
+
+  // Edit Master Modals State
+  const [editingDept, setEditingDept] = useState<any>(null);
+  const [editDeptName, setEditDeptName] = useState("");
+  const [editDeptCode, setEditDeptCode] = useState("");
+  const [isUpdatingDept, setIsUpdatingDept] = useState(false);
+
+  const [editingLoc, setEditingLoc] = useState<any>(null);
+  const [editLocName, setEditLocName] = useState("");
+  const [editLocCity, setEditLocCity] = useState("");
+  const [editLocCountry, setEditLocCountry] = useState("United States");
+  const [isUpdatingLoc, setIsUpdatingLoc] = useState(false);
+
+  const [editingWorkMode, setEditingWorkMode] = useState<any>(null);
+  const [editWorkModeName, setEditWorkModeName] = useState("");
+  const [editWorkModeSlug, setEditWorkModeSlug] = useState("");
+  const [editWorkModeDesc, setEditWorkModeDesc] = useState("");
+  const [isUpdatingWorkMode, setIsUpdatingWorkMode] = useState(false);
+
+  const [editingEmpType, setEditingEmpType] = useState<any>(null);
+  const [editEmpTypeName, setEditEmpTypeName] = useState("");
+  const [editEmpTypeSlug, setEditEmpTypeSlug] = useState("");
+  const [editEmpTypeDesc, setEditEmpTypeDesc] = useState("");
+  const [isUpdatingEmpType, setIsUpdatingEmpType] = useState(false);
+
+  const [editingExpLevel, setEditingExpLevel] = useState<any>(null);
+  const [editExpLevelName, setEditExpLevelName] = useState("");
+  const [editExpLevelSlug, setEditExpLevelSlug] = useState("");
+  const [editExpLevelMinYears, setEditExpLevelMinYears] = useState(0);
+  const [editExpLevelMaxYears, setEditExpLevelMaxYears] = useState(2);
+  const [editExpLevelDesc, setEditExpLevelDesc] = useState("");
+  const [isUpdatingExpLevel, setIsUpdatingExpLevel] = useState(false);
+
+  const [editingEduLevel, setEditingEduLevel] = useState<any>(null);
+  const [editEduLevelName, setEditEduLevelName] = useState("");
+  const [editEduLevelSlug, setEditEduLevelSlug] = useState("");
+  const [editEduLevelDesc, setEditEduLevelDesc] = useState("");
+  const [isUpdatingEduLevel, setIsUpdatingEduLevel] = useState(false);
+
   const [copied, setCopied] = useState(false);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [orgData, uList, rList, dList, lList] = await Promise.all([
+      const [orgData, uList, rList, dList, lList, wmList, etList, expList, eduList] = await Promise.all([
         getOrganizationSettings(),
         getUsers(),
         getRoles(),
         getDepartments(),
         getLocations(),
+        getWorkModes(),
+        getEmploymentTypes(),
+        getExperienceLevels(),
+        getEducationLevels(),
       ]);
       setOrg(orgData);
       if (orgData) {
@@ -175,11 +323,15 @@ function SettingsContent() {
       }
       setUsersList(uList);
       setRolesList(rList);
+      setDepartments(dList);
+      setLocations(lList);
+      setWorkModesList(wmList);
+      setEmploymentTypesList(etList);
+      setExperienceLevelsList(expList);
+      setEducationLevelsList(eduList);
       if (rList[0] && !newUserRole) {
         setNewUserRole(rList[0].slug);
       }
-      setDepartments(dList);
-      setLocations(lList);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load settings data");
@@ -470,6 +622,336 @@ function SettingsContent() {
     }
   };
 
+  const handleCreateWorkMode = async () => {
+    if (!newWorkModeName.trim()) {
+      toast.error("Please enter a work mode name");
+      return;
+    }
+    setIsCreatingWorkMode(true);
+    try {
+      await createWorkMode({
+        name: newWorkModeName.trim(),
+        slug: newWorkModeSlug.trim() || undefined,
+        description: newWorkModeDesc.trim() || undefined,
+      });
+      toast.success(`Work mode "${newWorkModeName}" created`);
+      setWorkModeModalOpen(false);
+      setNewWorkModeName("");
+      setNewWorkModeSlug("");
+      setNewWorkModeDesc("");
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add work mode");
+    } finally {
+      setIsCreatingWorkMode(false);
+    }
+  };
+
+  const handleDeleteWorkMode = async (id: string, name: string) => {
+    if (!confirm(`Delete work mode "${name}"?`)) return;
+    try {
+      await deleteWorkMode(id);
+      toast.success("Work mode removed");
+      await loadAll();
+    } catch {
+      toast.error("Failed to delete work mode");
+    }
+  };
+
+  const handleCreateEmpType = async () => {
+    if (!newEmpTypeName.trim()) {
+      toast.error("Please enter an employment type name");
+      return;
+    }
+    setIsCreatingEmpType(true);
+    try {
+      await createEmploymentType({
+        name: newEmpTypeName.trim(),
+        slug: newEmpTypeSlug.trim() || undefined,
+        description: newEmpTypeDesc.trim() || undefined,
+      });
+      toast.success(`Employment type "${newEmpTypeName}" created`);
+      setEmpTypeModalOpen(false);
+      setNewEmpTypeName("");
+      setNewEmpTypeSlug("");
+      setNewEmpTypeDesc("");
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add employment type");
+    } finally {
+      setIsCreatingEmpType(false);
+    }
+  };
+
+  const handleDeleteEmpType = async (id: string, name: string) => {
+    if (!confirm(`Delete employment type "${name}"?`)) return;
+    try {
+      await deleteEmploymentType(id);
+      toast.success("Employment type removed");
+      await loadAll();
+    } catch {
+      toast.error("Failed to delete employment type");
+    }
+  };
+
+  // Edit Department Handlers
+  const handleOpenEditDept = (dept: any) => {
+    setEditingDept(dept);
+    setEditDeptName(dept.name);
+    setEditDeptCode(dept.code);
+  };
+
+  const handleSaveEditDept = async () => {
+    if (!editingDept || !editDeptName.trim() || !editDeptCode.trim()) {
+      toast.error("Please fill in department name and code");
+      return;
+    }
+    setIsUpdatingDept(true);
+    try {
+      await updateDepartment(editingDept.id, {
+        name: editDeptName.trim(),
+        code: editDeptCode.trim().toUpperCase(),
+      });
+      toast.success("Department updated successfully");
+      setEditingDept(null);
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update department");
+    } finally {
+      setIsUpdatingDept(false);
+    }
+  };
+
+  // Edit Location Handlers
+  const handleOpenEditLoc = (loc: any) => {
+    setEditingLoc(loc);
+    setEditLocName(loc.name);
+    setEditLocCity(loc.city);
+    setEditLocCountry(loc.country || "United States");
+  };
+
+  const handleSaveEditLoc = async () => {
+    if (!editingLoc || !editLocName.trim() || !editLocCity.trim()) {
+      toast.error("Please fill in location name and city");
+      return;
+    }
+    setIsUpdatingLoc(true);
+    try {
+      await updateLocation(editingLoc.id, {
+        name: editLocName.trim(),
+        city: editLocCity.trim(),
+        country: editLocCountry.trim(),
+      });
+      toast.success("Location updated successfully");
+      setEditingLoc(null);
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update location");
+    } finally {
+      setIsUpdatingLoc(false);
+    }
+  };
+
+  // Edit Work Mode Handlers
+  const handleOpenEditWorkMode = (wm: any) => {
+    setEditingWorkMode(wm);
+    setEditWorkModeName(wm.name);
+    setEditWorkModeSlug(wm.slug);
+    setEditWorkModeDesc(wm.description || "");
+  };
+
+  const handleSaveEditWorkMode = async () => {
+    if (!editingWorkMode || !editWorkModeName.trim()) {
+      toast.error("Please enter a work mode name");
+      return;
+    }
+    setIsUpdatingWorkMode(true);
+    try {
+      await updateWorkMode(editingWorkMode.id, {
+        name: editWorkModeName.trim(),
+        slug: editWorkModeSlug.trim() || undefined,
+        description: editWorkModeDesc.trim() || undefined,
+      });
+      toast.success("Work mode updated successfully");
+      setEditingWorkMode(null);
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update work mode");
+    } finally {
+      setIsUpdatingWorkMode(false);
+    }
+  };
+
+  // Edit Employment Type Handlers
+  const handleOpenEditEmpType = (et: any) => {
+    setEditingEmpType(et);
+    setEditEmpTypeName(et.name);
+    setEditEmpTypeSlug(et.slug);
+    setEditEmpTypeDesc(et.description || "");
+  };
+
+  const handleSaveEditEmpType = async () => {
+    if (!editingEmpType || !editEmpTypeName.trim()) {
+      toast.error("Please enter an employment type name");
+      return;
+    }
+    setIsUpdatingEmpType(true);
+    try {
+      await updateEmploymentType(editingEmpType.id, {
+        name: editEmpTypeName.trim(),
+        slug: editEmpTypeSlug.trim() || undefined,
+        description: editEmpTypeDesc.trim() || undefined,
+      });
+      toast.success("Employment type updated successfully");
+      setEditingEmpType(null);
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update employment type");
+    } finally {
+      setIsUpdatingEmpType(false);
+    }
+  };
+
+  // Create Experience Level Handler
+  const handleCreateExpLevel = async () => {
+    if (!newExpLevelName.trim()) {
+      toast.error("Please enter an experience level name");
+      return;
+    }
+    setIsCreatingExpLevel(true);
+    try {
+      await createExperienceLevel({
+        name: newExpLevelName.trim(),
+        slug: newExpLevelSlug.trim() || undefined,
+        minYears: Number(newExpLevelMinYears) || 0,
+        maxYears: Number(newExpLevelMaxYears) || 0,
+        description: newExpLevelDesc.trim() || undefined,
+      });
+      toast.success(`Experience level "${newExpLevelName}" added`);
+      setExpLevelModalOpen(false);
+      setNewExpLevelName("");
+      setNewExpLevelSlug("");
+      setNewExpLevelMinYears(0);
+      setNewExpLevelMaxYears(2);
+      setNewExpLevelDesc("");
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add experience level");
+    } finally {
+      setIsCreatingExpLevel(false);
+    }
+  };
+
+  const handleOpenEditExpLevel = (exp: any) => {
+    setEditingExpLevel(exp);
+    setEditExpLevelName(exp.name);
+    setEditExpLevelSlug(exp.slug);
+    setEditExpLevelMinYears(exp.minYears ?? 0);
+    setEditExpLevelMaxYears(exp.maxYears ?? 0);
+    setEditExpLevelDesc(exp.description || "");
+  };
+
+  const handleSaveEditExpLevel = async () => {
+    if (!editingExpLevel || !editExpLevelName.trim()) {
+      toast.error("Please enter an experience level name");
+      return;
+    }
+    setIsUpdatingExpLevel(true);
+    try {
+      await updateExperienceLevel(editingExpLevel.id, {
+        name: editExpLevelName.trim(),
+        slug: editExpLevelSlug.trim() || undefined,
+        minYears: Number(editExpLevelMinYears),
+        maxYears: Number(editExpLevelMaxYears),
+        description: editExpLevelDesc.trim() || undefined,
+      });
+      toast.success("Experience level updated successfully");
+      setEditingExpLevel(null);
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update experience level");
+    } finally {
+      setIsUpdatingExpLevel(false);
+    }
+  };
+
+  const handleDeleteExpLevel = async (id: string, name: string) => {
+    if (!confirm(`Permanently remove experience level "${name}"?`)) return;
+    try {
+      await deleteExperienceLevel(id);
+      toast.success(`Removed experience level: ${name}`);
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete experience level");
+    }
+  };
+
+  // Create Education Level Handler
+  const handleCreateEduLevel = async () => {
+    if (!newEduLevelName.trim()) {
+      toast.error("Please enter an education level name");
+      return;
+    }
+    setIsCreatingEduLevel(true);
+    try {
+      await createEducationLevel({
+        name: newEduLevelName.trim(),
+        slug: newEduLevelSlug.trim() || undefined,
+        description: newEduLevelDesc.trim() || undefined,
+      });
+      toast.success(`Education requirement "${newEduLevelName}" added`);
+      setEduLevelModalOpen(false);
+      setNewEduLevelName("");
+      setNewEduLevelSlug("");
+      setNewEduLevelDesc("");
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add education requirement");
+    } finally {
+      setIsCreatingEduLevel(false);
+    }
+  };
+
+  const handleOpenEditEduLevel = (edu: any) => {
+    setEditingEduLevel(edu);
+    setEditEduLevelName(edu.name);
+    setEditEduLevelSlug(edu.slug);
+    setEditEduLevelDesc(edu.description || "");
+  };
+
+  const handleSaveEditEduLevel = async () => {
+    if (!editingEduLevel || !editEduLevelName.trim()) {
+      toast.error("Please enter an education requirement name");
+      return;
+    }
+    setIsUpdatingEduLevel(true);
+    try {
+      await updateEducationLevel(editingEduLevel.id, {
+        name: editEduLevelName.trim(),
+        slug: editEduLevelSlug.trim() || undefined,
+        description: editEduLevelDesc.trim() || undefined,
+      });
+      toast.success("Education requirement updated successfully");
+      setEditingEduLevel(null);
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update education requirement");
+    } finally {
+      setIsUpdatingEduLevel(false);
+    }
+  };
+
+  const handleDeleteEduLevel = async (id: string, name: string) => {
+    if (!confirm(`Permanently remove education requirement "${name}"?`)) return;
+    try {
+      await deleteEducationLevel(id);
+      toast.success(`Removed education requirement: ${name}`);
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete education requirement");
+    }
+  };
+
   const embedCodeSnippet = `// 1. Host Application React Microfrontend Import
 import { ReqruitBookEmbedContainer, CandidatePipelineEmbed } from "@reqruitbook/embed-sdk";
 
@@ -497,12 +979,6 @@ export function HostHrmRecruitmentView() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const canViewCompany = isSuperAdmin || hasPermission("canManageSettings");
-  const canViewRBAC = canManageRBAC;
-  const canViewUsers = isSuperAdmin || hasPermission("canManageUsers") || canManageRBAC;
-  const canViewDepts = isSuperAdmin || hasPermission("canManageDepartments");
-  const canViewLocations = isSuperAdmin || hasPermission("canManageSettings");
-  const canViewSDK = isSuperAdmin || hasPermission("canManageSettings");
   return (
     <div className="page max-w-full">
       <PageHeader
@@ -536,6 +1012,26 @@ export function HostHrmRecruitmentView() {
           {canViewLocations && (
             <TabsTrigger value="locations">
               Locations ({locations.length})
+            </TabsTrigger>
+          )}
+          {canViewWorkModes && (
+            <TabsTrigger value="work-modes">
+              Work Modes ({workModesList.length})
+            </TabsTrigger>
+          )}
+          {canViewEmpTypes && (
+            <TabsTrigger value="employment-types">
+              Employment Types ({employmentTypesList.length})
+            </TabsTrigger>
+          )}
+          {canViewExpLevels && (
+            <TabsTrigger value="experience-levels">
+              Experience Levels ({experienceLevelsList.length})
+            </TabsTrigger>
+          )}
+          {canViewEduLevels && (
+            <TabsTrigger value="education-levels">
+              Education Requirements ({educationLevelsList.length})
             </TabsTrigger>
           )}
           {canViewSDK && (
@@ -767,9 +1263,9 @@ export function HostHrmRecruitmentView() {
                   <Table>
                     <TableHeader>
                       <TableRow className="text-xs bg-muted/40">
-                        <TableHead className="w-80 min-w-[280px]">Feature &amp; Capability</TableHead>
+                        <TableHead className="w-80 min-w-70">Feature &amp; Capability</TableHead>
                         {rolesList.map((r) => (
-                          <TableHead key={r.id} className="text-center min-w-[120px]">
+                          <TableHead key={r.id} className="text-center min-w-30">
                             <div>
                               <span className="font-semibold text-foreground text-xs block">{r.name}</span>
                               <span className="text-[9px] text-muted-foreground">
@@ -832,7 +1328,7 @@ export function HostHrmRecruitmentView() {
                                         ) : isGranted ? (
                                           <Check className="size-3.5 stroke-[2.5]" />
                                         ) : (
-                                          <X className="size-3 stroke-[2]" />
+                                          <X className="size-3 stroke-2" />
                                         )}
                                       </button>
                                     </TableCell>
@@ -856,7 +1352,7 @@ export function HostHrmRecruitmentView() {
           <TabsContent value="users" className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="text-xs text-muted-foreground">
-                Manage system users and assign dynamic roles in real time.
+                Manage internal recruiter access, team members, and role assignments.
               </div>
               <RoleGuard permission="canManageUsers">
                 <Button
@@ -866,36 +1362,34 @@ export function HostHrmRecruitmentView() {
                   className="gap-1 text-xs"
                 >
                   <UserPlus className="size-3.5" />
-                  <span>Add User Account</span>
+                  <span>Invite User</span>
                 </Button>
               </RoleGuard>
             </div>
 
-            <Card className="shadow-none overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-xs">
-                    <TableHead>User</TableHead>
-                    <TableHead>Assigned Dynamic Role</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <TableShell>
+              <DTable>
+                <THead>
+                  <TH>User &amp; Email</TH>
+                  <TH>Assigned Role</TH>
+                  <TH>Department</TH>
+                  <TH>Status</TH>
+                  <TH>Created Date</TH>
+                  <TH align="right">Actions</TH>
+                </THead>
+                <TBody>
                   {usersList.map((u) => {
                     const isPrimaryAdmin = u.email === "admin@myorganisation.com";
                     return (
-                      <TableRow key={u.id} className="text-xs">
-                        <TableCell className="font-medium">
+                      <TR key={u.id}>
+                        <TD>
                           <div>
-                            <span className="font-semibold text-foreground block">{u.name}</span>
-                            <span className="text-[10px] text-muted-foreground">{u.email}</span>
+                            <span className="font-semibold text-foreground text-xs block">{u.name}</span>
+                            <span className="text-[11px] text-muted-foreground">{u.email}</span>
                           </div>
-                        </TableCell>
+                        </TD>
 
-                        <TableCell>
+                        <TD>
                           {isPrimaryAdmin ? (
                             <Badge variant="secondary" className="text-[10px] bg-copper/10 text-copper border-copper/30 gap-1">
                               <Lock className="size-2.5" />
@@ -923,15 +1417,15 @@ export function HostHrmRecruitmentView() {
                               </select>
                             </RoleGuard>
                           )}
-                        </TableCell>
+                        </TD>
 
-                        <TableCell>
+                        <TD>
                           <span className="text-muted-foreground text-xs">
                             {u.departmentName || "General Operations"}
                           </span>
-                        </TableCell>
+                        </TD>
 
-                        <TableCell>
+                        <TD>
                           {u.isActive ? (
                             <Badge variant="soft-success" className="text-[10px]">
                               Active
@@ -941,13 +1435,13 @@ export function HostHrmRecruitmentView() {
                               Deactivated
                             </Badge>
                           )}
-                        </TableCell>
+                        </TD>
 
-                        <TableCell className="text-muted-foreground">
+                        <TD className="text-muted-foreground text-xs">
                           {new Date(u.createdAt).toLocaleDateString()}
-                        </TableCell>
+                        </TD>
 
-                        <TableCell className="text-right">
+                        <TD align="right">
                           {!isPrimaryAdmin && (
                             <div className="flex items-center justify-end gap-1">
                               <Button
@@ -968,13 +1462,13 @@ export function HostHrmRecruitmentView() {
                               </Button>
                             </div>
                           )}
-                        </TableCell>
-                      </TableRow>
+                        </TD>
+                      </TR>
                     );
                   })}
-                </TableBody>
-              </Table>
-            </Card>
+                </TBody>
+              </DTable>
+            </TableShell>
           </TabsContent>
         )}
 
@@ -998,28 +1492,55 @@ export function HostHrmRecruitmentView() {
               </RoleGuard>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {departments.map((dept) => (
-                <Card key={dept.id} className="shadow-none border border-border p-3 flex items-center justify-between">
-                  <div>
-                    <span className="font-semibold text-foreground text-xs block">{dept.name}</span>
-                    <Badge variant="outline" className="text-[10px] mt-0.5">
-                      Code: {dept.code}
-                    </Badge>
-                  </div>
-                  <RoleGuard permission="canManageDepartments">
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => handleDeleteDept(dept.id, dept.name)}
-                      className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </RoleGuard>
-                </Card>
-              ))}
-            </div>
+            <TableShell>
+              <DTable>
+                <THead>
+                  <TH>Department Name</TH>
+                  <TH>Department Code</TH>
+                  <TH align="right">Actions</TH>
+                </THead>
+                <TBody>
+                  {departments.length === 0 ? (
+                    <EmptyRow colSpan={3}>No departments found.</EmptyRow>
+                  ) : (
+                    departments.map((dept) => (
+                      <TR key={dept.id}>
+                        <TD>
+                          <span className="font-semibold text-xs text-foreground">{dept.name}</span>
+                        </TD>
+                        <TD mono>
+                          <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                            {dept.code}
+                          </Badge>
+                        </TD>
+                        <TD align="right">
+                          <RoleGuard permission="canManageDepartments">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleOpenEditDept(dept)}
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                              >
+                                <Edit2 className="size-3.5" />
+                              </Button>
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleDeleteDept(dept.id, dept.name)}
+                                className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+                          </RoleGuard>
+                        </TD>
+                      </TR>
+                    ))
+                  )}
+                </TBody>
+              </DTable>
+            </TableShell>
           </TabsContent>
         )}
 
@@ -1030,7 +1551,7 @@ export function HostHrmRecruitmentView() {
               <div className="text-xs text-muted-foreground">
                 Configure global office locations and hiring hubs.
               </div>
-              <RoleGuard permission="canManageSettings">
+              <RoleGuard permission="canManageLocations">
                 <Button
                   size="sm"
                   variant="accent"
@@ -1043,35 +1564,366 @@ export function HostHrmRecruitmentView() {
               </RoleGuard>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {locations.map((loc) => (
-                <Card key={loc.id} className="shadow-none border border-border p-3 flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-1 font-semibold text-foreground text-xs">
-                      <MapPin className="size-3 text-copper" />
-                      <span>{loc.name}</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground block mt-0.5">
-                      {loc.city}, {loc.country}
-                    </span>
-                  </div>
-                  <RoleGuard permission="canManageSettings">
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => handleDeleteLoc(loc.id, loc.name)}
-                      className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </RoleGuard>
-                </Card>
-              ))}
-            </div>
+            <TableShell>
+              <DTable>
+                <THead>
+                  <TH>Office Location</TH>
+                  <TH>City</TH>
+                  <TH>Country</TH>
+                  <TH align="right">Actions</TH>
+                </THead>
+                <TBody>
+                  {locations.length === 0 ? (
+                    <EmptyRow colSpan={4}>No office hubs found.</EmptyRow>
+                  ) : (
+                    locations.map((loc) => (
+                      <TR key={loc.id}>
+                        <TD>
+                          <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
+                            <MapPin className="size-3.5 text-copper shrink-0" />
+                            <span>{loc.name}</span>
+                          </div>
+                        </TD>
+                        <TD>
+                          <span className="text-xs text-foreground">{loc.city}</span>
+                        </TD>
+                        <TD>
+                          <span className="text-xs text-muted-foreground">{loc.country}</span>
+                        </TD>
+                        <TD align="right">
+                          <RoleGuard permission="canManageLocations">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleOpenEditLoc(loc)}
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                              >
+                                <Edit2 className="size-3.5" />
+                              </Button>
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleDeleteLoc(loc.id, loc.name)}
+                                className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+                          </RoleGuard>
+                        </TD>
+                      </TR>
+                    ))
+                  )}
+                </TBody>
+              </DTable>
+            </TableShell>
           </TabsContent>
         )}
 
-        {/* 6. INTEGRATIONS / MICROFRONTEND */}
+        {/* 6. WORK MODES */}
+        {canViewWorkModes && (
+          <TabsContent value="work-modes" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                Define dynamic work arrangement options (e.g. Hybrid, Fully Remote, On-Site) for job requisitions.
+              </div>
+              <RoleGuard permission="canManageWorkModes">
+                <Button
+                  size="sm"
+                  variant="accent"
+                  onClick={() => setWorkModeModalOpen(true)}
+                  className="gap-1 text-xs"
+                >
+                  <Plus className="size-3.5" />
+                  <span>Add Work Mode</span>
+                </Button>
+              </RoleGuard>
+            </div>
+
+            <TableShell>
+              <DTable>
+                <THead>
+                  <TH>Work Mode</TH>
+                  <TH>Slug / Code</TH>
+                  <TH>Description</TH>
+                  <TH align="right">Actions</TH>
+                </THead>
+                <TBody>
+                  {workModesList.length === 0 ? (
+                    <EmptyRow colSpan={4}>No work modes found.</EmptyRow>
+                  ) : (
+                    workModesList.map((wm) => (
+                      <TR key={wm.id}>
+                        <TD>
+                          <span className="font-semibold text-xs text-foreground">{wm.name}</span>
+                        </TD>
+                        <TD mono>
+                          <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                            {wm.slug}
+                          </Badge>
+                        </TD>
+                        <TD className="text-muted-foreground">{wm.description || "—"}</TD>
+                        <TD align="right">
+                          <RoleGuard permission="canManageWorkModes">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleOpenEditWorkMode(wm)}
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                              >
+                                <Edit2 className="size-3.5" />
+                              </Button>
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleDeleteWorkMode(wm.id, wm.name)}
+                                className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+                          </RoleGuard>
+                        </TD>
+                      </TR>
+                    ))
+                  )}
+                </TBody>
+              </DTable>
+            </TableShell>
+          </TabsContent>
+        )}
+
+        {/* 7. EMPLOYMENT TYPES */}
+        {canViewEmpTypes && (
+          <TabsContent value="employment-types" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                Manage contract and employment classifications (e.g. Full-time Permanent, Contract, Internship) available during job creation.
+              </div>
+              <RoleGuard permission="canManageEmploymentTypes">
+                <Button
+                  size="sm"
+                  variant="accent"
+                  onClick={() => setEmpTypeModalOpen(true)}
+                  className="gap-1 text-xs"
+                >
+                  <Plus className="size-3.5" />
+                  <span>Add Employment Type</span>
+                </Button>
+              </RoleGuard>
+            </div>
+
+            <TableShell>
+              <DTable>
+                <THead>
+                  <TH>Employment Type</TH>
+                  <TH>Slug / Code</TH>
+                  <TH>Description</TH>
+                  <TH align="right">Actions</TH>
+                </THead>
+                <TBody>
+                  {employmentTypesList.length === 0 ? (
+                    <EmptyRow colSpan={4}>No employment types found.</EmptyRow>
+                  ) : (
+                    employmentTypesList.map((et) => (
+                      <TR key={et.id}>
+                        <TD>
+                          <span className="font-semibold text-xs text-foreground">{et.name}</span>
+                        </TD>
+                        <TD mono>
+                          <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                            {et.slug}
+                          </Badge>
+                        </TD>
+                        <TD className="text-muted-foreground">{et.description || "—"}</TD>
+                        <TD align="right">
+                          <RoleGuard permission="canManageEmploymentTypes">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleOpenEditEmpType(et)}
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                              >
+                                <Edit2 className="size-3.5" />
+                              </Button>
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleDeleteEmpType(et.id, et.name)}
+                                className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+                          </RoleGuard>
+                        </TD>
+                      </TR>
+                    ))
+                  )}
+                </TBody>
+              </DTable>
+            </TableShell>
+          </TabsContent>
+        )}
+
+        {/* 7b. EXPERIENCE LEVELS */}
+        {canViewExpLevels && (
+          <TabsContent value="experience-levels" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                Configure seniority tiers and minimum experience year ranges used in requisitions and candidate scorecards.
+              </div>
+              <RoleGuard permission="canManageExperienceLevels">
+                <Button
+                  size="sm"
+                  variant="accent"
+                  onClick={() => setExpLevelModalOpen(true)}
+                  className="gap-1 text-xs"
+                >
+                  <Plus className="size-3.5" />
+                  <span>Add Experience Level</span>
+                </Button>
+              </RoleGuard>
+            </div>
+
+            <TableShell>
+              <DTable>
+                <THead>
+                  <TH>Experience Level</TH>
+                  <TH>Slug / Code</TH>
+                  <TH>Years Range</TH>
+                  <TH>Description</TH>
+                  <TH align="right">Actions</TH>
+                </THead>
+                <TBody>
+                  {experienceLevelsList.length === 0 ? (
+                    <EmptyRow colSpan={5}>No experience levels found.</EmptyRow>
+                  ) : (
+                    experienceLevelsList.map((exp) => (
+                      <TR key={exp.id}>
+                        <TD>
+                          <span className="font-semibold text-xs text-foreground">{exp.name}</span>
+                        </TD>
+                        <TD mono>
+                          <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                            {exp.slug}
+                          </Badge>
+                        </TD>
+                        <TD>
+                          <span className="font-mono text-xs text-foreground font-medium">
+                            {exp.minYears} – {exp.maxYears} yrs
+                          </span>
+                        </TD>
+                        <TD className="text-muted-foreground">{exp.description || "—"}</TD>
+                        <TD align="right">
+                          <RoleGuard permission="canManageExperienceLevels">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleOpenEditExpLevel(exp)}
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                              >
+                                <Edit2 className="size-3.5" />
+                              </Button>
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleDeleteExpLevel(exp.id, exp.name)}
+                                className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+                          </RoleGuard>
+                        </TD>
+                      </TR>
+                    ))
+                  )}
+                </TBody>
+              </DTable>
+            </TableShell>
+          </TabsContent>
+        )}
+
+        {/* 7c. EDUCATION REQUIREMENTS */}
+        {canViewEduLevels && (
+          <TabsContent value="education-levels" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                Define educational degrees and qualification classifications for job openings.
+              </div>
+              <RoleGuard permission="canManageEducationLevels">
+                <Button
+                  size="sm"
+                  variant="accent"
+                  onClick={() => setEduLevelModalOpen(true)}
+                  className="gap-1 text-xs"
+                >
+                  <Plus className="size-3.5" />
+                  <span>Add Education Requirement</span>
+                </Button>
+              </RoleGuard>
+            </div>
+
+            <TableShell>
+              <DTable>
+                <THead>
+                  <TH>Education Level</TH>
+                  <TH>Slug / Code</TH>
+                  <TH>Description</TH>
+                  <TH align="right">Actions</TH>
+                </THead>
+                <TBody>
+                  {educationLevelsList.length === 0 ? (
+                    <EmptyRow colSpan={4}>No education requirements found.</EmptyRow>
+                  ) : (
+                    educationLevelsList.map((edu) => (
+                      <TR key={edu.id}>
+                        <TD>
+                          <span className="font-semibold text-xs text-foreground">{edu.name}</span>
+                        </TD>
+                        <TD mono>
+                          <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                            {edu.slug}
+                          </Badge>
+                        </TD>
+                        <TD className="text-muted-foreground">{edu.description || "—"}</TD>
+                        <TD align="right">
+                          <RoleGuard permission="canManageEducationLevels">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleOpenEditEduLevel(edu)}
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                              >
+                                <Edit2 className="size-3.5" />
+                              </Button>
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleDeleteEduLevel(edu.id, edu.name)}
+                                className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+                          </RoleGuard>
+                        </TD>
+                      </TR>
+                    ))
+                  )}
+                </TBody>
+              </DTable>
+            </TableShell>
+          </TabsContent>
+        )}
+
+        {/* 8. INTEGRATIONS / MICROFRONTEND */}
         {canViewSDK && (
           <TabsContent value="integrations" className="space-y-4">
             <Card className="shadow-none">
@@ -1205,7 +2057,7 @@ export function HostHrmRecruitmentView() {
                   const catPerms = ALL_PERMISSIONS.filter((p) => p.category === cat.id);
                   return (
                     <div key={cat.id} className="p-3 bg-muted/30 rounded-xs border border-border space-y-2">
-                      <div className="font-semibold text-[11px] text-foreground uppercase tracking-wider text-copper">
+                      <div className="font-semibold text-[11px] uppercase tracking-wider text-copper">
                         {cat.name}
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1342,7 +2194,7 @@ export function HostHrmRecruitmentView() {
                     const catPerms = ALL_PERMISSIONS.filter((p) => p.category === cat.id);
                     return (
                       <div key={cat.id} className="p-3 bg-muted/30 rounded-xs border border-border space-y-2">
-                        <div className="font-semibold text-[11px] text-foreground uppercase tracking-wider text-copper">
+                        <div className="font-semibold text-[11px] uppercase tracking-wider text-copper">
                           {cat.name}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1570,6 +2422,609 @@ export function HostHrmRecruitmentView() {
             >
               {isCreatingLoc ? <Loader2 className="size-3 animate-spin" /> : null}
               <span>Add Location</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Work Mode Modal */}
+      <Dialog open={workModeModalOpen} onOpenChange={setWorkModeModalOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Add Work Mode</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <label className="field-label">Work Mode Name *</label>
+              <Input
+                value={newWorkModeName}
+                onChange={(e) => {
+                  setNewWorkModeName(e.target.value);
+                  if (!newWorkModeSlug) {
+                    setNewWorkModeSlug(
+                      e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
+                    );
+                  }
+                }}
+                placeholder="e.g. Hybrid (3 Days Office)"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Identifier Slug</label>
+              <Input
+                value={newWorkModeSlug}
+                onChange={(e) => setNewWorkModeSlug(e.target.value)}
+                placeholder="e.g. hybrid_3days"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Description</label>
+              <Input
+                value={newWorkModeDesc}
+                onChange={(e) => setNewWorkModeDesc(e.target.value)}
+                placeholder="e.g. Tuesday-Thursday in office, Monday/Friday remote"
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button size="xs" variant="outline" onClick={() => setWorkModeModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              variant="accent"
+              disabled={isCreatingWorkMode}
+              onClick={handleCreateWorkMode}
+              className="gap-1"
+            >
+              {isCreatingWorkMode ? <Loader2 className="size-3 animate-spin" /> : null}
+              <span>Add Work Mode</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Employment Type Modal */}
+      <Dialog open={empTypeModalOpen} onOpenChange={setEmpTypeModalOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Add Employment Type</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <label className="field-label">Employment Type Name *</label>
+              <Input
+                value={newEmpTypeName}
+                onChange={(e) => {
+                  setNewEmpTypeName(e.target.value);
+                  if (!newEmpTypeSlug) {
+                    setNewEmpTypeSlug(
+                      e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
+                    );
+                  }
+                }}
+                placeholder="e.g. Fixed-Term Contract (12 Mo)"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Identifier Slug</label>
+              <Input
+                value={newEmpTypeSlug}
+                onChange={(e) => setNewEmpTypeSlug(e.target.value)}
+                placeholder="e.g. contract_12mo"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Description</label>
+              <Input
+                value={newEmpTypeDesc}
+                onChange={(e) => setNewEmpTypeDesc(e.target.value)}
+                placeholder="e.g. 12-month fixed term with renewal evaluation"
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button size="xs" variant="outline" onClick={() => setEmpTypeModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              variant="accent"
+              disabled={isCreatingEmpType}
+              onClick={handleCreateEmpType}
+              className="gap-1"
+            >
+              {isCreatingEmpType ? <Loader2 className="size-3 animate-spin" /> : null}
+              <span>Add Employment Type</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Department Modal */}
+      <Dialog open={!!editingDept} onOpenChange={(open) => !open && setEditingDept(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Edit Department</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <label className="field-label">Department Name *</label>
+              <Input
+                value={editDeptName}
+                onChange={(e) => setEditDeptName(e.target.value)}
+                placeholder="e.g. Engineering"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Code / Abbreviation *</label>
+              <Input
+                value={editDeptCode}
+                onChange={(e) => setEditDeptCode(e.target.value.toUpperCase())}
+                placeholder="e.g. ENG"
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button size="xs" variant="outline" onClick={() => setEditingDept(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              variant="accent"
+              disabled={isUpdatingDept}
+              onClick={handleSaveEditDept}
+              className="gap-1"
+            >
+              {isUpdatingDept ? <Loader2 className="size-3 animate-spin" /> : null}
+              <span>Save Changes</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Location Modal */}
+      <Dialog open={!!editingLoc} onOpenChange={(open) => !open && setEditingLoc(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Edit Office Location</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <label className="field-label">Location Name / Hub *</label>
+              <Input
+                value={editLocName}
+                onChange={(e) => setEditLocName(e.target.value)}
+                placeholder="e.g. London EMEA Office"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">City *</label>
+              <Input
+                value={editLocCity}
+                onChange={(e) => setEditLocCity(e.target.value)}
+                placeholder="e.g. London"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Country *</label>
+              <Input
+                value={editLocCountry}
+                onChange={(e) => setEditLocCountry(e.target.value)}
+                placeholder="e.g. United Kingdom"
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button size="xs" variant="outline" onClick={() => setEditingLoc(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              variant="accent"
+              disabled={isUpdatingLoc}
+              onClick={handleSaveEditLoc}
+              className="gap-1"
+            >
+              {isUpdatingLoc ? <Loader2 className="size-3 animate-spin" /> : null}
+              <span>Save Changes</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Work Mode Modal */}
+      <Dialog open={!!editingWorkMode} onOpenChange={(open) => !open && setEditingWorkMode(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Edit Work Mode</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <label className="field-label">Work Mode Name *</label>
+              <Input
+                value={editWorkModeName}
+                onChange={(e) => setEditWorkModeName(e.target.value)}
+                placeholder="e.g. Hybrid (3 Days Office)"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Identifier Slug</label>
+              <Input
+                value={editWorkModeSlug}
+                onChange={(e) => setEditWorkModeSlug(e.target.value)}
+                placeholder="e.g. hybrid_3days"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Description</label>
+              <Input
+                value={editWorkModeDesc}
+                onChange={(e) => setEditWorkModeDesc(e.target.value)}
+                placeholder="e.g. Tuesday-Thursday in office"
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button size="xs" variant="outline" onClick={() => setEditingWorkMode(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              variant="accent"
+              disabled={isUpdatingWorkMode}
+              onClick={handleSaveEditWorkMode}
+              className="gap-1"
+            >
+              {isUpdatingWorkMode ? <Loader2 className="size-3 animate-spin" /> : null}
+              <span>Save Changes</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Employment Type Modal */}
+      <Dialog open={!!editingEmpType} onOpenChange={(open) => !open && setEditingEmpType(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Edit Employment Type</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <label className="field-label">Employment Type Name *</label>
+              <Input
+                value={editEmpTypeName}
+                onChange={(e) => setEditEmpTypeName(e.target.value)}
+                placeholder="e.g. Fixed-Term Contract"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Identifier Slug</label>
+              <Input
+                value={editEmpTypeSlug}
+                onChange={(e) => setEditEmpTypeSlug(e.target.value)}
+                placeholder="e.g. contract_12mo"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Description</label>
+              <Input
+                value={editEmpTypeDesc}
+                onChange={(e) => setEditEmpTypeDesc(e.target.value)}
+                placeholder="e.g. 12-month fixed term"
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button size="xs" variant="outline" onClick={() => setEditingEmpType(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              variant="accent"
+              disabled={isUpdatingEmpType}
+              onClick={handleSaveEditEmpType}
+              className="gap-1"
+            >
+              {isUpdatingEmpType ? <Loader2 className="size-3 animate-spin" /> : null}
+              <span>Save Changes</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ADD EXPERIENCE LEVEL MODAL */}
+      <Dialog open={expLevelModalOpen} onOpenChange={setExpLevelModalOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Add Experience Level</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <label className="field-label">Experience Level Name *</label>
+              <Input
+                value={newExpLevelName}
+                onChange={(e) => {
+                  setNewExpLevelName(e.target.value);
+                  if (!newExpLevelSlug) {
+                    setNewExpLevelSlug(
+                      e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
+                    );
+                  }
+                }}
+                placeholder="e.g. Senior Staff Engineer"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Identifier Slug</label>
+              <Input
+                value={newExpLevelSlug}
+                onChange={(e) => setNewExpLevelSlug(e.target.value)}
+                placeholder="e.g. senior_staff"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="field-label">Min Experience (Yrs)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={newExpLevelMinYears}
+                  onChange={(e) => setNewExpLevelMinYears(Number(e.target.value))}
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="field-label">Max Experience (Yrs)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={newExpLevelMaxYears}
+                  onChange={(e) => setNewExpLevelMaxYears(Number(e.target.value))}
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Description</label>
+              <Input
+                value={newExpLevelDesc}
+                onChange={(e) => setNewExpLevelDesc(e.target.value)}
+                placeholder="e.g. Principal organizational leadership"
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button size="xs" variant="outline" onClick={() => setExpLevelModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              variant="accent"
+              disabled={isCreatingExpLevel}
+              onClick={handleCreateExpLevel}
+              className="gap-1"
+            >
+              {isCreatingExpLevel ? <Loader2 className="size-3 animate-spin" /> : null}
+              <span>Save &amp; Create</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* EDIT EXPERIENCE LEVEL MODAL */}
+      <Dialog open={!!editingExpLevel} onOpenChange={(open) => !open && setEditingExpLevel(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Edit Experience Level</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <label className="field-label">Experience Level Name *</label>
+              <Input
+                value={editExpLevelName}
+                onChange={(e) => setEditExpLevelName(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Identifier Slug</label>
+              <Input
+                value={editExpLevelSlug}
+                onChange={(e) => setEditExpLevelSlug(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="field-label">Min Experience (Yrs)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={editExpLevelMinYears}
+                  onChange={(e) => setEditExpLevelMinYears(Number(e.target.value))}
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="field-label">Max Experience (Yrs)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={editExpLevelMaxYears}
+                  onChange={(e) => setEditExpLevelMaxYears(Number(e.target.value))}
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Description</label>
+              <Input
+                value={editExpLevelDesc}
+                onChange={(e) => setEditExpLevelDesc(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button size="xs" variant="outline" onClick={() => setEditingExpLevel(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              variant="accent"
+              disabled={isUpdatingExpLevel}
+              onClick={handleSaveEditExpLevel}
+              className="gap-1"
+            >
+              {isUpdatingExpLevel ? <Loader2 className="size-3 animate-spin" /> : null}
+              <span>Save Changes</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ADD EDUCATION LEVEL MODAL */}
+      <Dialog open={eduLevelModalOpen} onOpenChange={setEduLevelModalOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Add Education Requirement</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <label className="field-label">Education Requirement Name *</label>
+              <Input
+                value={newEduLevelName}
+                onChange={(e) => {
+                  setNewEduLevelName(e.target.value);
+                  if (!newEduLevelSlug) {
+                    setNewEduLevelSlug(
+                      e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
+                    );
+                  }
+                }}
+                placeholder="e.g. Associate Degree"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Identifier Slug</label>
+              <Input
+                value={newEduLevelSlug}
+                onChange={(e) => setNewEduLevelSlug(e.target.value)}
+                placeholder="e.g. associate_degree"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Description</label>
+              <Input
+                value={newEduLevelDesc}
+                onChange={(e) => setNewEduLevelDesc(e.target.value)}
+                placeholder="e.g. 2-year postsecondary degree"
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button size="xs" variant="outline" onClick={() => setEduLevelModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              variant="accent"
+              disabled={isCreatingEduLevel}
+              onClick={handleCreateEduLevel}
+              className="gap-1"
+            >
+              {isCreatingEduLevel ? <Loader2 className="size-3 animate-spin" /> : null}
+              <span>Save &amp; Create</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* EDIT EDUCATION LEVEL MODAL */}
+      <Dialog open={!!editingEduLevel} onOpenChange={(open) => !open && setEditingEduLevel(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Edit Education Requirement</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <label className="field-label">Education Requirement Name *</label>
+              <Input
+                value={editEduLevelName}
+                onChange={(e) => setEditEduLevelName(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Identifier Slug</label>
+              <Input
+                value={editEduLevelSlug}
+                onChange={(e) => setEditEduLevelSlug(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="field-label">Description</label>
+              <Input
+                value={editEduLevelDesc}
+                onChange={(e) => setEditEduLevelDesc(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button size="xs" variant="outline" onClick={() => setEditingEduLevel(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              variant="accent"
+              disabled={isUpdatingEduLevel}
+              onClick={handleSaveEditEduLevel}
+              className="gap-1"
+            >
+              {isUpdatingEduLevel ? <Loader2 className="size-3 animate-spin" /> : null}
+              <span>Save Changes</span>
             </Button>
           </DialogFooter>
         </DialogContent>

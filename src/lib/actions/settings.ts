@@ -2,7 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { organizations, departments, locations, users } from "@/db/schema";
+import {
+  organizations,
+  departments,
+  locations,
+  workModes,
+  employmentTypes,
+  experienceLevels,
+  educationLevels,
+  users,
+} from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth/session";
 import { assertPermission, type UserRole } from "@/lib/auth/rbac";
@@ -206,6 +215,28 @@ export async function createDepartment(data: {
   return { success: true, id: newId };
 }
 
+export async function updateDepartment(
+  id: string,
+  data: { name?: string; code?: string; leadName?: string }
+) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageDepartments", user.permissions);
+
+  await db
+    .update(departments)
+    .set({
+      ...(data.name && { name: data.name }),
+      ...(data.code && { code: data.code.toUpperCase() }),
+      ...(data.leadName !== undefined && { leadName: data.leadName }),
+    })
+    .where(eq(departments.id, id));
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true };
+}
+
 export async function deleteDepartment(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthenticated");
@@ -234,7 +265,7 @@ export async function createLocation(data: {
 }) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthenticated");
-  assertPermission(user.role, "canManageSettings", user.permissions);
+  assertPermission(user.role, "canManageLocations", user.permissions);
 
   const newId = `loc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
@@ -253,13 +284,340 @@ export async function createLocation(data: {
   return { success: true, id: newId };
 }
 
+export async function updateLocation(
+  id: string,
+  data: { name?: string; city?: string; country?: string; isRemoteHub?: boolean }
+) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageLocations", user.permissions);
+
+  await db
+    .update(locations)
+    .set({
+      ...(data.name && { name: data.name }),
+      ...(data.city && { city: data.city }),
+      ...(data.country && { country: data.country }),
+      ...(data.isRemoteHub !== undefined && { isRemoteHub: data.isRemoteHub }),
+    })
+    .where(eq(locations.id, id));
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true };
+}
+
 export async function deleteLocation(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthenticated");
-  assertPermission(user.role, "canManageSettings", user.permissions);
+  assertPermission(user.role, "canManageLocations", user.permissions);
 
   await db.delete(locations).where(eq(locations.id, id));
 
   revalidatePath("/settings");
   return { success: true };
 }
+
+/* -------------------------------------------------------------------------- */
+/* WORK MODES                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export async function getWorkModes() {
+  try {
+    return await db.select().from(workModes).orderBy(workModes.name);
+  } catch (error) {
+    console.error("Failed to fetch work modes:", error);
+    return [];
+  }
+}
+
+export async function createWorkMode(data: {
+  name: string;
+  slug?: string;
+  description?: string;
+}) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageWorkModes", user.permissions);
+
+  const slug = (data.slug || data.name).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const newId = `wm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+  await db.insert(workModes).values({
+    id: newId,
+    orgId: "org_myorganisation",
+    name: data.name,
+    slug: slug || `wm_${Date.now()}`,
+    description: data.description || null,
+    isDefault: false,
+    createdAt: new Date(),
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true, id: newId };
+}
+
+export async function updateWorkMode(
+  id: string,
+  data: { name?: string; slug?: string; description?: string }
+) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageWorkModes", user.permissions);
+
+  await db
+    .update(workModes)
+    .set({
+      ...(data.name && { name: data.name }),
+      ...(data.slug && { slug: data.slug }),
+      ...(data.description !== undefined && { description: data.description }),
+    })
+    .where(eq(workModes.id, id));
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true };
+}
+
+export async function deleteWorkMode(id: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageWorkModes", user.permissions);
+
+  await db.delete(workModes).where(eq(workModes.id, id));
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* EMPLOYMENT TYPES                                                           */
+/* -------------------------------------------------------------------------- */
+
+export async function getEmploymentTypes() {
+  try {
+    return await db.select().from(employmentTypes).orderBy(employmentTypes.name);
+  } catch (error) {
+    console.error("Failed to fetch employment types:", error);
+    return [];
+  }
+}
+
+export async function createEmploymentType(data: {
+  name: string;
+  slug?: string;
+  description?: string;
+}) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageEmploymentTypes", user.permissions);
+
+  const slug = (data.slug || data.name).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const newId = `et_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+  await db.insert(employmentTypes).values({
+    id: newId,
+    orgId: "org_myorganisation",
+    name: data.name,
+    slug: slug || `et_${Date.now()}`,
+    description: data.description || null,
+    isDefault: false,
+    createdAt: new Date(),
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true, id: newId };
+}
+
+export async function updateEmploymentType(
+  id: string,
+  data: { name?: string; slug?: string; description?: string }
+) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageEmploymentTypes", user.permissions);
+
+  await db
+    .update(employmentTypes)
+    .set({
+      ...(data.name && { name: data.name }),
+      ...(data.slug && { slug: data.slug }),
+      ...(data.description !== undefined && { description: data.description }),
+    })
+    .where(eq(employmentTypes.id, id));
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true };
+}
+
+export async function deleteEmploymentType(id: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageEmploymentTypes", user.permissions);
+
+  await db.delete(employmentTypes).where(eq(employmentTypes.id, id));
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* EXPERIENCE LEVELS                                                          */
+/* -------------------------------------------------------------------------- */
+
+export async function getExperienceLevels() {
+  try {
+    return await db.select().from(experienceLevels).orderBy(experienceLevels.minYears);
+  } catch (error) {
+    console.error("Failed to fetch experience levels:", error);
+    return [];
+  }
+}
+
+export async function createExperienceLevel(data: {
+  name: string;
+  slug?: string;
+  minYears?: number;
+  maxYears?: number;
+  description?: string;
+}) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageExperienceLevels", user.permissions);
+
+  const slug = (data.slug || data.name).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const newId = `exp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+  await db.insert(experienceLevels).values({
+    id: newId,
+    orgId: "org_myorganisation",
+    name: data.name,
+    slug: slug || `exp_${Date.now()}`,
+    minYears: data.minYears ?? 0,
+    maxYears: data.maxYears ?? 0,
+    description: data.description || null,
+    isDefault: false,
+    createdAt: new Date(),
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true, id: newId };
+}
+
+export async function updateExperienceLevel(
+  id: string,
+  data: { name?: string; slug?: string; minYears?: number; maxYears?: number; description?: string }
+) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageExperienceLevels", user.permissions);
+
+  await db
+    .update(experienceLevels)
+    .set({
+      ...(data.name && { name: data.name }),
+      ...(data.slug && { slug: data.slug }),
+      ...(data.minYears !== undefined && { minYears: data.minYears }),
+      ...(data.maxYears !== undefined && { maxYears: data.maxYears }),
+      ...(data.description !== undefined && { description: data.description }),
+    })
+    .where(eq(experienceLevels.id, id));
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true };
+}
+
+export async function deleteExperienceLevel(id: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageExperienceLevels", user.permissions);
+
+  await db.delete(experienceLevels).where(eq(experienceLevels.id, id));
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* EDUCATION LEVELS                                                           */
+/* -------------------------------------------------------------------------- */
+
+export async function getEducationLevels() {
+  try {
+    return await db.select().from(educationLevels).orderBy(educationLevels.name);
+  } catch (error) {
+    console.error("Failed to fetch education levels:", error);
+    return [];
+  }
+}
+
+export async function createEducationLevel(data: {
+  name: string;
+  slug?: string;
+  description?: string;
+}) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageEducationLevels", user.permissions);
+
+  const slug = (data.slug || data.name).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const newId = `edu_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+  await db.insert(educationLevels).values({
+    id: newId,
+    orgId: "org_myorganisation",
+    name: data.name,
+    slug: slug || `edu_${Date.now()}`,
+    description: data.description || null,
+    isDefault: false,
+    createdAt: new Date(),
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true, id: newId };
+}
+
+export async function updateEducationLevel(
+  id: string,
+  data: { name?: string; slug?: string; description?: string }
+) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageEducationLevels", user.permissions);
+
+  await db
+    .update(educationLevels)
+    .set({
+      ...(data.name && { name: data.name }),
+      ...(data.slug && { slug: data.slug }),
+      ...(data.description !== undefined && { description: data.description }),
+    })
+    .where(eq(educationLevels.id, id));
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true };
+}
+
+export async function deleteEducationLevel(id: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthenticated");
+  assertPermission(user.role, "canManageEducationLevels", user.permissions);
+
+  await db.delete(educationLevels).where(eq(educationLevels.id, id));
+
+  revalidatePath("/settings");
+  revalidatePath("/jobs");
+  return { success: true };
+}
+
+

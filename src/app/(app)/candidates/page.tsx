@@ -1,20 +1,23 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import {
+  TableShell,
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  THead,
+  TH,
+  SortableTH,
+  TBody,
+  TR,
+  TD,
+  EmptyRow,
+  ClientPagination,
+} from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { cn } from "@/lib/utils";
@@ -69,6 +72,12 @@ function CandidatesContent() {
   const [candidatesList, setCandidatesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Sorting & Client Pagination
+  const [sortField, setSortField] = useState<string>("fullName");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
   // Candidate detail drawer
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -91,6 +100,7 @@ function CandidatesContent() {
         inTalentPool: tab === "talent-pool" ? true : undefined,
       });
       setCandidatesList(data);
+      setPage(1);
     } catch (err) {
       console.error("Failed to load candidates:", err);
       toast.error("Failed to load candidates directory");
@@ -160,7 +170,7 @@ function CandidatesContent() {
         totalExperienceYears: Number(editExp),
         expectedSalary: Number(editSalary),
       });
-      toast.success("Candidate profile updated!");
+      toast.success("Candidate updated successfully!");
       setEditingCandidate(null);
       await loadCandidates();
     } catch {
@@ -171,20 +181,47 @@ function CandidatesContent() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Delete candidate "${name}"?`)) return;
+    if (!confirm(`Are you sure you want to permanently delete candidate "${name}"?`)) return;
     try {
       await deleteCandidate(id);
-      toast.success(`Candidate ${name} deleted.`);
+      toast.success(`Deleted candidate: ${name}`);
       await loadCandidates();
     } catch {
       toast.error("Failed to delete candidate");
     }
   };
 
+  const handleSort = (field: string, direction: "asc" | "desc") => {
+    setSortField(field);
+    setSortDirection(direction);
+  };
+
+  // Processed sorted & paginated candidates
+  const sortedCandidates = useMemo(() => {
+    return [...candidatesList].sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+
+      if (typeof aVal === "string") {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal || "").toLowerCase();
+      }
+
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [candidatesList, sortField, sortDirection]);
+
+  const paginatedCandidates = useMemo(() => {
+    const from = (page - 1) * pageSize;
+    return sortedCandidates.slice(from, from + pageSize);
+  }, [sortedCandidates, page, pageSize]);
+
   return (
-    <div className="page">
+    <div className="page space-y-4">
       <PageHeader
-        title="Candidate Directory & Talent Pool"
+        title="Candidate Directory &amp; Talent Pool"
         description="Unified database of applicants, sourced talent, evaluation scorecards, and resumes."
         actions={
           <RoleGuard permission="canManageCandidates">
@@ -205,19 +242,19 @@ function CandidatesContent() {
             type="button"
             onClick={() => handleTabChange("all")}
             className={cn(
-              "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap",
+              "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap cursor-pointer",
               tab === "all"
                 ? "border-copper text-foreground font-semibold"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
             )}
           >
-            All Candidates
+            All Candidates ({candidatesList.length})
           </button>
           <button
             type="button"
             onClick={() => handleTabChange("talent-pool")}
             className={cn(
-              "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap",
+              "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap cursor-pointer",
               tab === "talent-pool"
                 ? "border-copper text-foreground font-semibold"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
@@ -228,74 +265,90 @@ function CandidatesContent() {
         </div>
 
         <div className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search candidates by name, email, skill..."
+            placeholder="Search candidate, skill, role..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 h-7 text-xs bg-card"
+            className="pl-8 h-8 text-xs bg-card"
           />
         </div>
       </div>
 
-      {/* Candidates Table */}
-      <Card className="shadow-none overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-            <Loader2 className="size-4 animate-spin text-copper" />
-            <span>Loading candidates from database...</span>
-          </div>
-        ) : candidatesList.length === 0 ? (
-          <div className="p-12 text-center text-xs text-muted-foreground space-y-2">
-            <div>No candidates found matching criteria.</div>
-            <RoleGuard permission="canManageCandidates">
-              <Link href="/candidates/new">
-                <Button size="xs" variant="outline" className="gap-1 mt-2">
-                  <Plus className="size-3" />
-                  <span>Add First Candidate</span>
-                </Button>
-              </Link>
-            </RoleGuard>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="text-xs">
-                <TableHead>Candidate</TableHead>
-                <TableHead>Current Role &amp; Company</TableHead>
-                <TableHead>Experience &amp; Notice</TableHead>
-                <TableHead>Core Skills</TableHead>
-                <TableHead>Rating</TableHead>
-                <TableHead>Talent Pool</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {candidatesList.map((cand) => (
-                <TableRow key={cand.id} className="text-xs">
-                  <TableCell className="font-medium">
-                    <div>
+      {/* StoqBook TableShell */}
+      <TableShell>
+        <Table>
+          <THead>
+            <SortableTH
+              field="fullName"
+              currentSort={sortField === "fullName" ? (sortDirection === "asc" ? "fullName" : "-fullName") : ""}
+              onSort={handleSort}
+            >
+              Candidate
+            </SortableTH>
+            <TH>Current Role &amp; Company</TH>
+            <SortableTH
+              field="totalExperienceYears"
+              currentSort={sortField === "totalExperienceYears" ? (sortDirection === "asc" ? "totalExperienceYears" : "-totalExperienceYears") : ""}
+              onSort={handleSort}
+            >
+              Experience &amp; Notice
+            </SortableTH>
+            <TH>Core Skills</TH>
+            <TH align="center">Rating</TH>
+            <TH align="center">Talent Pool</TH>
+            <TH align="right">Actions</TH>
+          </THead>
+          <TBody>
+            {loading ? (
+              <EmptyRow colSpan={7}>
+                <div className="flex flex-col items-center justify-center gap-2 py-4">
+                  <Loader2 className="size-5 animate-spin text-copper" />
+                  <span className="text-xs text-muted-foreground">Loading candidates from database...</span>
+                </div>
+              </EmptyRow>
+            ) : paginatedCandidates.length === 0 ? (
+              <EmptyRow colSpan={7}>
+                <div className="py-6 text-center space-y-2">
+                  <p className="text-xs text-muted-foreground">No candidates match your criteria.</p>
+                  <RoleGuard permission="canManageCandidates">
+                    <Link href="/candidates/new">
+                      <Button size="xs" variant="outline" className="gap-1 text-xs">
+                        <Plus className="size-3" />
+                        <span>Add First Candidate</span>
+                      </Button>
+                    </Link>
+                  </RoleGuard>
+                </div>
+              </EmptyRow>
+            ) : (
+              paginatedCandidates.map((cand) => (
+                <TR key={cand.id}>
+                  {/* Candidate */}
+                  <TD>
+                    <div className="flex flex-col gap-0.5">
                       <button
                         onClick={() => handleViewDetails(cand.id)}
-                        className="font-semibold text-foreground text-sm hover:text-copper transition-colors text-left block"
+                        className="font-semibold text-xs text-foreground hover:text-copper transition-colors text-left block cursor-pointer"
                       >
                         {cand.fullName}
                       </button>
-                      <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-2">
                         <span className="flex items-center gap-1">
-                          <Mail className="size-3 text-muted-foreground" />
+                          <Mail className="size-3 text-muted-foreground shrink-0" />
                           <span>{cand.email}</span>
                         </span>
                         <span>•</span>
                         <span className="flex items-center gap-1">
-                          <MapPin className="size-3 text-muted-foreground" />
+                          <MapPin className="size-3 text-copper shrink-0" />
                           <span>{cand.city || "San Francisco"}</span>
                         </span>
                       </div>
                     </div>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Current Role & Company */}
+                  <TD>
                     <div className="space-y-0.5">
                       <div className="font-medium text-foreground text-xs">
                         {cand.currentDesignation || "Software Engineer"}
@@ -304,43 +357,48 @@ function CandidatesContent() {
                         {cand.currentCompany || "Enterprise Corp"}
                       </div>
                     </div>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
-                    <div className="text-xs text-foreground font-medium">
-                      {cand.totalExperienceYears || 3} years exp
+                  {/* Experience & Notice */}
+                  <TD>
+                    <div className="text-xs text-foreground font-mono font-medium">
+                      {cand.totalExperienceYears || 3} yrs exp
                     </div>
                     <span className="text-[11px] text-muted-foreground">
                       {cand.noticePeriodDays || 30} days notice
                     </span>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Core Skills */}
+                  <TD>
                     <div className="flex flex-wrap gap-1 max-w-xs">
                       {(cand.skills || []).slice(0, 3).map((skill: string) => (
-                        <span
+                        <Badge
                           key={skill}
-                          className="px-1.5 py-0.5 rounded-xs bg-muted text-[10px] text-muted-foreground"
+                          variant="outline"
+                          className="px-1.5 py-0 text-[10px] text-muted-foreground bg-muted/40 border-border font-normal"
                         >
                           {skill}
-                        </span>
+                        </Badge>
                       ))}
                       {(cand.skills || []).length > 3 && (
-                        <span className="text-[10px] text-muted-foreground">
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground px-1 py-0 border-border">
                           +{cand.skills.length - 3}
-                        </span>
+                        </Badge>
                       )}
                     </div>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
-                      <Star className="size-3 text-copper fill-copper" />
+                  {/* Rating */}
+                  <TD align="center">
+                    <div className="inline-flex items-center gap-1 text-xs font-semibold text-foreground px-1.5 py-0.5 rounded-xs bg-muted/40">
+                      <Star className="size-3 text-amber-500 fill-amber-500" />
                       <span>{cand.rating || "4.8"}</span>
                     </div>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Talent Pool Toggle */}
+                  <TD align="center">
                     <Button
                       size="xs"
                       variant="ghost"
@@ -351,7 +409,7 @@ function CandidatesContent() {
                       {cand.inTalentPool ? (
                         <>
                           <BookmarkCheck className="size-3.5 text-copper" />
-                          <span className="text-[11px] text-copper font-medium">Curated</span>
+                          <span className="text-[11px] text-copper font-semibold">Curated</span>
                         </>
                       ) : (
                         <>
@@ -360,16 +418,17 @@ function CandidatesContent() {
                         </>
                       )}
                     </Button>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell className="text-right">
+                  {/* Actions */}
+                  <TD align="right">
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         size="xs"
                         variant="ghost"
                         title="View Profile"
                         onClick={() => handleViewDetails(cand.id)}
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-copper"
                       >
                         <Eye className="size-3.5" />
                       </Button>
@@ -396,13 +455,23 @@ function CandidatesContent() {
                         </Button>
                       </RoleGuard>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
+                  </TD>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </Table>
+
+        {/* StoqBook ClientPagination */}
+        <ClientPagination
+          page={page}
+          limit={pageSize}
+          total={candidatesList.length}
+          onPageChange={setPage}
+          onLimitChange={setPageSize}
+          limitOptions={[10, 25, 50, 100]}
+        />
+      </TableShell>
 
       {/* Candidate Profile Details Modal */}
       <Dialog open={!!selectedCandidate} onOpenChange={(open) => !open && setSelectedCandidate(null)}>
@@ -451,57 +520,33 @@ function CandidatesContent() {
 
               {/* Skills */}
               <div className="space-y-1.5">
-                <div className="font-semibold text-foreground text-xs">Skills &amp; Competencies</div>
+                <div className="font-medium text-foreground">Skills &amp; Competencies</div>
                 <div className="flex flex-wrap gap-1">
                   {(selectedCandidate.skills || []).map((s: string) => (
-                    <Badge key={s} variant="secondary" className="text-[10px]">
+                    <Badge key={s} variant="outline" className="text-[11px] font-normal">
                       {s}
                     </Badge>
                   ))}
                 </div>
               </div>
 
-              {/* Application History */}
-              <div className="space-y-2">
-                <div className="font-semibold text-foreground text-xs flex items-center justify-between">
-                  <span>Applications History</span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {selectedCandidate.applications?.length || 0} active
-                  </span>
-                </div>
-                {selectedCandidate.applications?.length === 0 ? (
-                  <div className="p-3 text-center text-muted-foreground bg-card rounded-xs border border-border">
-                    No active job applications found.
-                  </div>
-                ) : (
+              {/* Work History */}
+              {selectedCandidate.experienceHistory?.length > 0 && (
+                <div className="space-y-2">
+                  <div className="font-medium text-foreground">Experience History</div>
                   <div className="space-y-1.5">
-                    {selectedCandidate.applications?.map((app: any) => (
-                      <div
-                        key={app.id}
-                        className="p-2.5 rounded-xs border border-border bg-card flex items-center justify-between"
-                      >
-                        <div>
-                          <span className="font-medium text-foreground block">{app.jobTitle}</span>
-                          <span className="text-[10px] text-muted-foreground">
-                            Applied on {new Date(app.createdAt).toLocaleDateString()} • Source: {app.source}
-                          </span>
+                    {selectedCandidate.experienceHistory.map((exp: any, i: number) => (
+                      <div key={i} className="p-2.5 rounded-xs border border-border bg-card">
+                        <div className="font-semibold text-foreground text-xs">{exp.role}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {exp.company} • {exp.duration}
                         </div>
-                        <StatusBadge status={app.stage} />
+                        {exp.highlights && (
+                          <p className="text-[11px] text-muted-foreground mt-1">{exp.highlights}</p>
+                        )}
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-
-              {/* Notes */}
-              {selectedCandidate.notes && (
-                <div className="p-3 bg-muted/20 rounded-xs border border-border space-y-1">
-                  <div className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wider">
-                    Recruiter Notes
-                  </div>
-                  <p className="text-xs text-foreground leading-relaxed">
-                    {selectedCandidate.notes}
-                  </p>
                 </div>
               )}
             </div>
@@ -519,9 +564,8 @@ function CandidatesContent() {
       <Dialog open={!!editingCandidate} onOpenChange={(open) => !open && setEditingCandidate(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">Edit Candidate Profile</DialogTitle>
+            <DialogTitle className="text-base font-semibold">Edit Candidate</DialogTitle>
           </DialogHeader>
-
           <div className="space-y-3 py-2 text-xs">
             <div className="space-y-1">
               <label className="field-label">Full Name</label>
@@ -534,7 +578,6 @@ function CandidatesContent() {
             <div className="space-y-1">
               <label className="field-label">Email</label>
               <Input
-                type="email"
                 value={editEmail}
                 onChange={(e) => setEditEmail(e.target.value)}
                 className="h-8 text-xs"
@@ -550,7 +593,7 @@ function CandidatesContent() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="field-label">Company</label>
+                <label className="field-label">Current Company</label>
                 <Input
                   value={editCompany}
                   onChange={(e) => setEditCompany(e.target.value)}
@@ -560,12 +603,12 @@ function CandidatesContent() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="field-label">Years of Experience</label>
+                <label className="field-label">Total Exp (Years)</label>
                 <Input
                   type="number"
                   value={editExp}
                   onChange={(e) => setEditExp(Number(e.target.value))}
-                  className="h-8 text-xs"
+                  className="h-8 text-xs font-mono"
                 />
               </div>
               <div className="space-y-1">
@@ -574,12 +617,11 @@ function CandidatesContent() {
                   type="number"
                   value={editSalary}
                   onChange={(e) => setEditSalary(Number(e.target.value))}
-                  className="h-8 text-xs"
+                  className="h-8 text-xs font-mono"
                 />
               </div>
             </div>
           </div>
-
           <DialogFooter>
             <Button size="xs" variant="outline" onClick={() => setEditingCandidate(null)}>
               Cancel
@@ -603,7 +645,13 @@ function CandidatesContent() {
 
 export default function CandidatesPage() {
   return (
-    <Suspense fallback={<div className="page p-8 text-xs text-muted-foreground">Loading candidates...</div>}>
+    <Suspense
+      fallback={
+        <div className="page flex items-center justify-center p-12">
+          <Loader2 className="size-6 animate-spin text-copper" />
+        </div>
+      }
+    >
       <CandidatesContent />
     </Suspense>
   );

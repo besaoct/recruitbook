@@ -1,19 +1,22 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import {
+  TableShell,
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  THead,
+  TH,
+  SortableTH,
+  TBody,
+  TR,
+  TD,
+  EmptyRow,
+  ClientPagination,
+} from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { cn } from "@/lib/utils";
@@ -63,6 +66,12 @@ function OffersContent() {
   const [offersList, setOffersList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Sorting & Client Pagination
+  const [sortField, setSortField] = useState<string>("candidateName");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
   // Offer Letter Preview Modal
   const [previewOffer, setPreviewOffer] = useState<any>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -74,6 +83,7 @@ function OffersContent() {
         status: filter === "all" ? undefined : filter,
       });
       setOffersList(data);
+      setPage(1);
     } catch (err) {
       console.error("Failed to load offers:", err);
       toast.error("Failed to load offers");
@@ -139,8 +149,35 @@ function OffersContent() {
     }
   };
 
+  const handleSort = (field: string, direction: "asc" | "desc") => {
+    setSortField(field);
+    setSortDirection(direction);
+  };
+
+  // Processed sorted & paginated offers
+  const sortedOffers = useMemo(() => {
+    return [...offersList].sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+
+      if (typeof aVal === "string") {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal || "").toLowerCase();
+      }
+
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [offersList, sortField, sortDirection]);
+
+  const paginatedOffers = useMemo(() => {
+    const from = (page - 1) * pageSize;
+    return sortedOffers.slice(from, from + pageSize);
+  }, [sortedOffers, page, pageSize]);
+
   return (
-    <div className="page">
+    <div className="page space-y-4">
       <PageHeader
         title="Offer Management &amp; HRM Synchronization"
         description="Draft compensation packages, route approvals, send offer letters, and auto-onboard accepted hires directly into HRM."
@@ -171,7 +208,7 @@ function OffersContent() {
             type="button"
             onClick={() => handleFilterChange(tab.id)}
             className={cn(
-              "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap",
+              "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap cursor-pointer",
               filter === tab.id
                 ? "border-copper text-foreground font-semibold"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
@@ -182,84 +219,104 @@ function OffersContent() {
         ))}
       </div>
 
-      {/* Offers Table */}
-      <Card className="shadow-none overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-            <Loader2 className="size-4 animate-spin text-copper" />
-            <span>Loading offers from database...</span>
-          </div>
-        ) : offersList.length === 0 ? (
-          <div className="p-12 text-center text-xs text-muted-foreground space-y-2">
-            <div>No offers found matching your filter.</div>
-            <RoleGuard permission="canCreateOffers">
-              <Link href="/offers/new">
-                <Button size="xs" variant="outline" className="gap-1 mt-2">
-                  <Plus className="size-3" />
-                  <span>Create First Offer Package</span>
-                </Button>
-              </Link>
-            </RoleGuard>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="text-xs">
-                <TableHead>Candidate &amp; Role</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Base Salary</TableHead>
-                <TableHead>Target Joining Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>HRM Sync</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {offersList.map((off) => (
-                <TableRow key={off.id} className="text-xs">
-                  <TableCell className="font-medium">
+      {/* StoqBook TableShell */}
+      <TableShell>
+        <Table>
+          <THead>
+            <SortableTH
+              field="candidateName"
+              currentSort={sortField === "candidateName" ? (sortDirection === "asc" ? "candidateName" : "-candidateName") : ""}
+              onSort={handleSort}
+            >
+              Candidate &amp; Role
+            </SortableTH>
+            <TH>Department</TH>
+            <SortableTH
+              field="baseSalary"
+              currentSort={sortField === "baseSalary" ? (sortDirection === "asc" ? "baseSalary" : "-baseSalary") : ""}
+              onSort={handleSort}
+            >
+              Base Salary
+            </SortableTH>
+            <TH>Target Joining Date</TH>
+            <TH>Status</TH>
+            <TH>HRM Sync</TH>
+            <TH align="right">Actions</TH>
+          </THead>
+          <TBody>
+            {loading ? (
+              <EmptyRow colSpan={7}>
+                <div className="flex flex-col items-center justify-center gap-2 py-4">
+                  <Loader2 className="size-5 animate-spin text-copper" />
+                  <span className="text-xs text-muted-foreground">Loading offers from database...</span>
+                </div>
+              </EmptyRow>
+            ) : paginatedOffers.length === 0 ? (
+              <EmptyRow colSpan={7}>
+                <div className="py-6 text-center space-y-2">
+                  <p className="text-xs text-muted-foreground">No offers found matching your filter.</p>
+                  <RoleGuard permission="canCreateOffers">
+                    <Link href="/offers/new">
+                      <Button size="xs" variant="outline" className="gap-1 text-xs">
+                        <Plus className="size-3" />
+                        <span>Create First Offer Package</span>
+                      </Button>
+                    </Link>
+                  </RoleGuard>
+                </div>
+              </EmptyRow>
+            ) : (
+              paginatedOffers.map((off) => (
+                <TR key={off.id}>
+                  {/* Candidate & Role */}
+                  <TD>
                     <div>
-                      <span className="font-semibold text-foreground text-sm block">
+                      <span className="font-semibold text-foreground text-xs block">
                         {off.candidateName}
                       </span>
                       <span className="text-[11px] text-muted-foreground">
                         {off.designation}
                       </span>
                     </div>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Department */}
+                  <TD>
                     <div className="text-xs text-foreground font-medium">
                       {off.departmentName}
                     </div>
                     <span className="text-[10px] text-muted-foreground">
                       Manager: {off.reportingManager || "Department Lead"}
                     </span>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Base Salary */}
+                  <TD>
                     <RoleGuard
                       permission="canViewSalaries"
                       fallback={<span className="text-[11px] text-muted-foreground italic">Confidential</span>}
                     >
-                      <span className="text-xs font-semibold text-foreground">
+                      <span className="text-xs font-mono font-medium text-foreground">
                         ${(off.baseSalary || 0).toLocaleString()} {off.currency}
                       </span>
                     </RoleGuard>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Joining Date */}
+                  <TD>
                     <div className="flex items-center gap-1 text-xs text-foreground">
-                      <Calendar className="size-3 text-muted-foreground" />
+                      <Calendar className="size-3 text-copper shrink-0" />
                       <span>{off.joiningDate}</span>
                     </div>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Status */}
+                  <TD>
                     <StatusBadge status={off.status} />
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* HRM Sync */}
+                  <TD>
                     {off.hrmSynced ? (
                       <Badge variant="soft-success" className="gap-1 text-[10px]">
                         <CheckCircle2 className="size-3" />
@@ -270,16 +327,17 @@ function OffersContent() {
                         Not Synced
                       </span>
                     )}
-                  </TableCell>
+                  </TD>
 
-                  <TableCell className="text-right">
+                  {/* Actions */}
+                  <TD align="right">
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         size="xs"
                         variant="ghost"
                         title="Preview Offer Letter"
                         onClick={() => setPreviewOffer(off)}
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-copper"
                       >
                         <Eye className="size-3.5" />
                       </Button>
@@ -341,7 +399,7 @@ function OffersContent() {
                             variant="accent"
                             disabled={syncingId === off.id}
                             onClick={() => handleTriggerHrmSync(off)}
-                            className="h-7 px-2.5 text-[11px] gap-1 bg-success hover:bg-success-hover text-white"
+                            className="h-7 px-2.5 text-[11px] gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
                           >
                             {syncingId === off.id ? (
                               <Loader2 className="size-3 animate-spin" />
@@ -353,13 +411,23 @@ function OffersContent() {
                         </RoleGuard>
                       )}
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
+                  </TD>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </Table>
+
+        {/* StoqBook ClientPagination */}
+        <ClientPagination
+          page={page}
+          limit={pageSize}
+          total={offersList.length}
+          onPageChange={setPage}
+          onLimitChange={setPageSize}
+          limitOptions={[10, 25, 50, 100]}
+        />
+      </TableShell>
 
       {/* Offer Letter Preview Modal */}
       <Dialog open={!!previewOffer} onOpenChange={(open) => !open && setPreviewOffer(null)}>
@@ -389,7 +457,7 @@ function OffersContent() {
                 <div className="p-3 bg-card rounded-xs border border-border font-sans space-y-1.5 not-italic">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Annual Base Compensation:</span>
-                    <span className="font-semibold text-foreground">${(previewOffer.baseSalary || 0).toLocaleString()} {previewOffer.currency}</span>
+                    <span className="font-semibold text-foreground font-mono">${(previewOffer.baseSalary || 0).toLocaleString()} {previewOffer.currency}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Anticipated Start Date:</span>

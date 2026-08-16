@@ -232,13 +232,27 @@ export const APP_NAVIGATION: NavDef[] = [
     href: "/settings",
     icon: "Settings",
     moduleSlug: "settings",
-    permissions: ["canManageSettings", "canManageUsers", "canAssignRoles", "canManageDepartments"],
+    permissions: [
+      "canManageSettings",
+      "canManageUsers",
+      "canAssignRoles",
+      "canManageDepartments",
+      "canManageLocations",
+      "canManageWorkModes",
+      "canManageEmploymentTypes",
+      "canManageExperienceLevels",
+      "canManageEducationLevels",
+    ],
     children: [
-      { label: "Organization & Branding", href: "/settings", permission: "canManageSettings" },
+      { label: "Organization & Branding", href: "/settings?tab=company", permission: "canManageSettings" },
       { label: "Roles & Permissions (RBAC)", href: "/settings?tab=rbac", permission: "canAssignRoles" },
       { label: "Users & Directory", href: "/settings?tab=users", permission: "canManageUsers" },
       { label: "Departments", href: "/settings?tab=departments", permission: "canManageDepartments" },
-      { label: "Locations", href: "/settings?tab=locations", permission: "canManageSettings" },
+      { label: "Locations", href: "/settings?tab=locations", permission: "canManageLocations" },
+      { label: "Work Modes", href: "/settings?tab=work-modes", permission: "canManageWorkModes" },
+      { label: "Employment Types", href: "/settings?tab=employment-types", permission: "canManageEmploymentTypes" },
+      { label: "Experience Levels", href: "/settings?tab=experience-levels", permission: "canManageExperienceLevels" },
+      { label: "Education Requirements", href: "/settings?tab=education-levels", permission: "canManageEducationLevels" },
       { label: "Microfrontend SDK", href: "/settings?tab=integrations", permission: "canManageSettings" },
     ],
   },
@@ -256,12 +270,14 @@ export interface DynamicRouteRequirement {
 export function getRoutePermissions(pathname: string): DynamicRouteRequirement | null {
   const cleanPath = pathname.split("?")[0];
 
-  // 1. Check exact sub-route match in navigation children
+  // 1. Check distinct sub-route match in navigation children (e.g. /candidates/new)
   for (const item of APP_NAVIGATION) {
     if (item.children) {
       for (const child of item.children) {
         const childPath = child.href.split("?")[0];
-        if (childPath === cleanPath) {
+        const parentPath = item.href.split("?")[0];
+        // Only evaluate child if it has a unique distinct pathname (not query-tab based)
+        if (childPath === cleanPath && childPath !== parentPath) {
           if (child.permission) {
             return { permissions: [child.permission], mode: "all" };
           }

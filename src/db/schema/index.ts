@@ -118,6 +118,60 @@ export const locations = pgTable("locations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// 3b. Dynamic Work Modes
+export const workModes = pgTable("work_modes", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  orgId: varchar("org_id", { length: 64 })
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // e.g. "Hybrid", "Remote", "On-Site"
+  slug: varchar("slug", { length: 64 }).notNull(), // e.g. "hybrid", "remote", "on_site"
+  description: text("description"),
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// 3c. Dynamic Employment Types
+export const employmentTypes = pgTable("employment_types", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  orgId: varchar("org_id", { length: 64 })
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // e.g. "Full-time", "Part-time", "Contract", "Internship"
+  slug: varchar("slug", { length: 64 }).notNull(), // e.g. "full_time", "part_time", "contract", "internship"
+  description: text("description"),
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// 3d. Dynamic Experience Levels
+export const experienceLevels = pgTable("experience_levels", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  orgId: varchar("org_id", { length: 64 })
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // e.g. "Senior Level (5-8 yrs)"
+  slug: varchar("slug", { length: 64 }).notNull(), // e.g. "senior"
+  minYears: integer("min_years").default(0),
+  maxYears: integer("max_years").default(0),
+  description: text("description"),
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// 3e. Dynamic Education Requirements
+export const educationLevels = pgTable("education_levels", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  orgId: varchar("org_id", { length: 64 })
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // e.g. "Bachelor's Degree or Equivalent"
+  slug: varchar("slug", { length: 64 }).notNull(), // e.g. "bachelors"
+  description: text("description"),
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // 4a. Dynamic Roles & RBAC
 export const roles = pgTable(
   "roles",
@@ -201,8 +255,8 @@ export const jobOpenings = pgTable(
       { onDelete: "set null" },
     ),
     locationText: text("location_text").default("San Francisco, CA / Remote"),
-    workMode: workModeEnum("work_mode").default("hybrid").notNull(),
-    employmentType: employmentTypeEnum("employment_type")
+    workMode: varchar("work_mode", { length: 64 }).default("hybrid").notNull(),
+    employmentType: varchar("employment_type", { length: 64 })
       .default("full_time")
       .notNull(),
     vacancies: integer("vacancies").default(1).notNull(),
@@ -217,12 +271,35 @@ export const jobOpenings = pgTable(
     salaryMin: integer("salary_min"),
     salaryMax: integer("salary_max"),
     currency: varchar("currency", { length: 8 }).default("USD"),
+    payFrequency: varchar("pay_frequency", { length: 32 }).default("annual"),
+    isSalaryPublic: boolean("is_salary_public").default(true).notNull(),
+    equityRange: text("equity_range"),
+    bonusStructure: text("bonus_structure"),
+    relocationAssistance: text("relocation_assistance"),
+    reqCode: varchar("req_code", { length: 64 }),
+    experienceLevel: varchar("experience_level", { length: 64 }).default("mid"),
+    educationLevel: varchar("education_level", { length: 64 }).default("bachelors"),
+    targetStartDate: timestamp("target_start_date"),
     status: jobStatusEnum("status").default("draft").notNull(),
     summary: text("summary"),
     responsibilities: text("responsibilities"),
     requirements: text("requirements"),
+    niceToHave: text("nice_to_have"),
+    aboutTeam: text("about_team"),
     benefits: text("benefits"),
+    benefitsList: jsonb("benefits_list")
+      .$type<
+        {
+          id?: string;
+          title: string;
+          description?: string;
+          category?: string;
+          icon?: string;
+        }[]
+      >()
+      .default([]),
     skills: jsonb("skills").$type<string[]>().default([]),
+    secondarySkills: jsonb("secondary_skills").$type<string[]>().default([]),
     customQuestions: jsonb("custom_questions").$type<any[]>().default([]),
     publishedAt: timestamp("published_at"),
     closedAt: timestamp("closed_at"),

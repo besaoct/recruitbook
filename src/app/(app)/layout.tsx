@@ -2,6 +2,8 @@ import { AppShell } from "@/components/layout/app-shell";
 import { getNavigation } from "@/lib/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { AuthProvider } from "@/components/auth/auth-context";
+import { getNavigationBadgeCounts } from "@/lib/actions/navigation";
+import { getDepartments } from "@/lib/actions/settings";
 
 const ROLE_LABELS: Record<string, string> = {
   system_admin: "System Administrator",
@@ -16,14 +18,20 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const currentUser = await getCurrentUser();
+  const [currentUser, badges, dbDepts] = await Promise.all([
+    getCurrentUser(),
+    getNavigationBadgeCounts(),
+    getDepartments(),
+  ]);
 
   const departments = [
     { id: "dept_all", name: "All Departments", code: "ALL", location: "Global" },
-    { id: "dept_eng", name: "Engineering & Tech", code: "ENG", location: "San Francisco / Remote" },
-    { id: "dept_prod", name: "Product & Design", code: "PRD", location: "New York" },
-    { id: "dept_sales", name: "Sales & Growth", code: "SLS", location: "London" },
-    { id: "dept_ops", name: "Operations & HR", code: "OPS", location: "Singapore" },
+    ...dbDepts.map((d) => ({
+      id: d.id,
+      name: d.name,
+      code: d.code,
+      location: d.leadName || "Office",
+    })),
   ];
 
   const userRole = currentUser?.role || "recruiter";
@@ -34,14 +42,6 @@ export default async function AppLayout({
     name: currentUser?.name || "Recruiter",
     email: currentUser?.email || "recruiter@myorganisation.com",
     roleLabel: ROLE_LABELS[userRole] || userRole.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-  };
-
-  const badges = {
-    openJobs: 18,
-    activeApplications: 142,
-    screeningCount: 38,
-    interviewsToday: 8,
-    pendingFeedback: 5,
   };
 
   // Pass dynamic role and permissions to filter navigation
@@ -55,7 +55,7 @@ export default async function AppLayout({
         user={user}
         departments={departments}
         activeDepartmentId="dept_all"
-        unreadCount={6}
+        unreadCount={badges.pendingFeedback || 0}
       >
         {children}
       </AppShell>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +14,17 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import {
+  TableShell,
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  THead,
+  TH,
+  SortableTH,
+  TBody,
+  TR,
+  TD,
+  EmptyRow,
+  ClientPagination,
+} from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
 import { cn } from "@/lib/utils";
 import {
@@ -70,6 +74,12 @@ function CommunicationsContent() {
   const [candidates, setCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // History Sorting & Client Pagination
+  const [historySortField, setHistorySortField] = useState<string>("sentAt");
+  const [historySortDirection, setHistorySortDirection] = useState<"asc" | "desc">("desc");
+  const [historyPage, setHistoryPage] = useState<number>(1);
+  const [historyPageSize, setHistoryPageSize] = useState<number>(10);
+
   // Create/Edit Template Modal
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
@@ -98,6 +108,7 @@ function CommunicationsContent() {
       setMessages(msgs);
       setCandidates(cands);
       if (cands[0]) setTargetCandidateId(cands[0].id);
+      setHistoryPage(1);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load communications");
@@ -140,7 +151,7 @@ function CommunicationsContent() {
 
   const handleSaveTemplate = async () => {
     if (!tplName || !tplSubject || !tplBody) {
-      toast.error("Please fill in template name, subject, and body");
+      toast.error("Please fill in all template fields");
       return;
     }
     setIsSavingTpl(true);
@@ -160,7 +171,7 @@ function CommunicationsContent() {
           subject: tplSubject,
           bodyTemplate: tplBody,
         });
-        toast.success("New communication template created!");
+        toast.success("New email template created!");
       }
       setTemplateModalOpen(false);
       await loadData();
@@ -184,14 +195,11 @@ function CommunicationsContent() {
 
   const handleSendMessage = async () => {
     if (!targetCandidateId || !msgSubject || !msgBody) {
-      toast.error("Please fill in candidate, subject, and email body");
+      toast.error("Please fill in candidate, subject, and message content");
       return;
     }
     const matchedCandidate = candidates.find((c) => c.id === targetCandidateId);
-    if (!matchedCandidate) {
-      toast.error("Candidate not found");
-      return;
-    }
+    if (!matchedCandidate) return;
 
     setIsSending(true);
     try {
@@ -211,8 +219,35 @@ function CommunicationsContent() {
     }
   };
 
+  const handleHistorySort = (field: string, direction: "asc" | "desc") => {
+    setHistorySortField(field);
+    setHistorySortDirection(direction);
+  };
+
+  // Processed sorted & paginated messages
+  const sortedMessages = useMemo(() => {
+    return [...messages].sort((a, b) => {
+      let aVal = a[historySortField];
+      let bVal = b[historySortField];
+
+      if (typeof aVal === "string") {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal || "").toLowerCase();
+      }
+
+      if (aVal < bVal) return historySortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return historySortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [messages, historySortField, historySortDirection]);
+
+  const paginatedMessages = useMemo(() => {
+    const from = (historyPage - 1) * historyPageSize;
+    return sortedMessages.slice(from, from + historyPageSize);
+  }, [sortedMessages, historyPage, historyPageSize]);
+
   return (
-    <div className="page">
+    <div className="page space-y-4">
       <PageHeader
         title="Candidate Communications &amp; Automated Templates"
         description="Configure standardized email templates with smart merge tokens and send direct applicant communications."
@@ -255,7 +290,7 @@ function CommunicationsContent() {
           type="button"
           onClick={() => handleTabChange("templates")}
           className={cn(
-            "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap",
+            "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap cursor-pointer",
             activeTab === "templates"
               ? "border-copper text-foreground font-semibold"
               : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
@@ -267,7 +302,7 @@ function CommunicationsContent() {
           type="button"
           onClick={() => handleTabChange("history")}
           className={cn(
-            "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap",
+            "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap cursor-pointer",
             activeTab === "history"
               ? "border-copper text-foreground font-semibold"
               : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
@@ -294,7 +329,7 @@ function CommunicationsContent() {
                       Trigger: Stage <strong className="text-foreground capitalize">{tpl.triggerEvent}</strong>
                     </CardDescription>
                   </div>
-                  <Badge variant="outline" className="text-[10px] shrink-0">
+                  <Badge variant="outline" className="text-[10px] shrink-0 border-copper/30 text-copper">
                     Active
                   </Badge>
                 </div>
@@ -340,104 +375,118 @@ function CommunicationsContent() {
         </div>
       ) : (
         /* Sent Messages Log Table */
-        <Card className="shadow-none overflow-hidden">
-          {messages.length === 0 ? (
-            <div className="p-12 text-center text-xs text-muted-foreground">
-              No communication history found.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="text-xs">
-                  <TableHead>Candidate Recipient</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Channel</TableHead>
-                  <TableHead>Sent At</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {messages.map((msg) => (
-                  <TableRow key={msg.id} className="text-xs">
-                    <TableCell className="font-medium">
+        <TableShell>
+          <Table>
+            <THead>
+              <SortableTH
+                field="recipientName"
+                currentSort={historySortField === "recipientName" ? (historySortDirection === "asc" ? "recipientName" : "-recipientName") : ""}
+                onSort={handleHistorySort}
+              >
+                Candidate Recipient
+              </SortableTH>
+              <TH>Subject</TH>
+              <TH>Channel</TH>
+              <SortableTH
+                field="sentAt"
+                currentSort={historySortField === "sentAt" ? (historySortDirection === "asc" ? "sentAt" : "-sentAt") : ""}
+                onSort={handleHistorySort}
+              >
+                Sent At
+              </SortableTH>
+              <TH>Status</TH>
+            </THead>
+            <TBody>
+              {paginatedMessages.length === 0 ? (
+                <EmptyRow colSpan={5}>No communication history found.</EmptyRow>
+              ) : (
+                paginatedMessages.map((msg) => (
+                  <TR key={msg.id}>
+                    <TD>
                       <div>
-                        <span className="font-semibold text-foreground block">
-                          {msg.candidateName}
+                        <span className="font-semibold text-foreground text-xs block">
+                          {msg.recipientName}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {msg.candidateEmail}
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          {msg.recipientEmail}
                         </span>
                       </div>
-                    </TableCell>
-
-                    <TableCell>
+                    </TD>
+                    <TD>
                       <span className="font-medium text-foreground text-xs">{msg.subject}</span>
-                      <p className="text-[10px] text-muted-foreground truncate max-w-md">
-                        {msg.body}
-                      </p>
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize text-[10px]">
-                        {msg.channel}
+                    </TD>
+                    <TD>
+                      <Badge variant="outline" className="text-[10px] capitalize border-border bg-card">
+                        {msg.type || "Email"}
                       </Badge>
-                    </TableCell>
-
-                    <TableCell className="text-muted-foreground">
-                      {new Date(msg.sentAt).toLocaleDateString()} at{" "}
-                      {new Date(msg.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </TableCell>
-
-                    <TableCell>
+                    </TD>
+                    <TD>
+                      <div className="text-xs text-foreground font-mono">
+                        {new Date(msg.sentAt).toLocaleDateString()}
+                      </div>
+                      <span className="text-[11px] text-muted-foreground font-mono">
+                        {new Date(msg.sentAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </TD>
+                    <TD>
                       <Badge variant="soft-success" className="gap-1 text-[10px]">
                         <CheckCircle2 className="size-3" />
                         <span>Delivered</span>
                       </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </Card>
+                    </TD>
+                  </TR>
+                ))
+              )}
+            </TBody>
+          </Table>
+
+          <ClientPagination
+            page={historyPage}
+            limit={historyPageSize}
+            total={messages.length}
+            onPageChange={setHistoryPage}
+            onLimitChange={setHistoryPageSize}
+            limitOptions={[10, 25, 50, 100]}
+          />
+        </TableShell>
       )}
 
-      {/* Create/Edit Template Modal */}
+      {/* Create / Edit Template Modal */}
       <Dialog open={templateModalOpen} onOpenChange={setTemplateModalOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">
               {editingTemplateId ? "Edit Communication Template" : "Create Communication Template"}
             </DialogTitle>
           </DialogHeader>
-
           <div className="space-y-3 py-2 text-xs">
-            <div className="space-y-1">
-              <label className="field-label">Template Name</label>
-              <Input
-                value={tplName}
-                onChange={(e) => setTplName(e.target.value)}
-                placeholder="e.g. Technical Round Invitation"
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="field-label">ATS Stage Trigger</label>
-              <select
-                value={tplStage}
-                onChange={(e) => setTplStage(e.target.value)}
-                className="w-full h-8 px-2 text-xs rounded-xs border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-copper"
-              >
-                <option value="applied">Applied</option>
-                <option value="screening">Screening</option>
-                <option value="shortlisted">Shortlisted</option>
-                <option value="interview">Interview</option>
-                <option value="evaluation">Evaluation</option>
-                <option value="offer">Offer</option>
-                <option value="hired">Hired</option>
-                <option value="rejected">Rejected</option>
-              </select>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="field-label">Template Name</label>
+                <Input
+                  value={tplName}
+                  onChange={(e) => setTplName(e.target.value)}
+                  placeholder="e.g. Technical Screen Invitation"
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="field-label">Recruitment Stage Trigger</label>
+                <select
+                  value={tplStage}
+                  onChange={(e) => setTplStage(e.target.value)}
+                  className="w-full h-8 px-2 text-xs rounded-xs border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-copper"
+                >
+                  <option value="applied">Applied (Auto-Ack)</option>
+                  <option value="screening">Screening Schedule</option>
+                  <option value="interview">Panel Interview</option>
+                  <option value="offer">Offer Notification</option>
+                  <option value="rejected">Rejection with Dignity</option>
+                </select>
+              </div>
             </div>
 
             <div className="space-y-1">
@@ -445,22 +494,23 @@ function CommunicationsContent() {
               <Input
                 value={tplSubject}
                 onChange={(e) => setTplSubject(e.target.value)}
+                placeholder="Subject with tokens..."
                 className="h-8 text-xs"
               />
             </div>
 
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <label className="field-label">Email Content Body</label>
+                <label className="field-label">Email Body</label>
                 <span className="text-[10px] text-muted-foreground">
-                  Available: {"{{candidate_name}}"}, {"{{job_title}}"}
+                  Tokens: {"{{candidate_name}}"}, {"{{job_title}}"}
                 </span>
               </div>
               <Textarea
-                rows={5}
+                rows={6}
                 value={tplBody}
                 onChange={(e) => setTplBody(e.target.value)}
-                className="text-xs"
+                className="text-xs font-mono"
               />
             </div>
           </div>
@@ -483,15 +533,15 @@ function CommunicationsContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Send Message to Candidate Modal */}
+      {/* Send Candidate Email Modal */}
       <Dialog open={sendModalOpen} onOpenChange={setSendModalOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">
-              Compose Candidate Message
+            <DialogTitle className="text-base font-semibold flex items-center gap-2">
+              <Mail className="size-4 text-copper" />
+              <span>Direct Candidate Communication</span>
             </DialogTitle>
           </DialogHeader>
-
           <div className="space-y-3 py-2 text-xs">
             <div className="space-y-1">
               <label className="field-label">Recipient Candidate</label>
@@ -518,9 +568,9 @@ function CommunicationsContent() {
             </div>
 
             <div className="space-y-1">
-              <label className="field-label">Message Body</label>
+              <label className="field-label">Message Content</label>
               <Textarea
-                rows={5}
+                rows={6}
                 value={msgBody}
                 onChange={(e) => setMsgBody(e.target.value)}
                 className="text-xs"
@@ -540,7 +590,7 @@ function CommunicationsContent() {
               className="gap-1"
             >
               {isSending ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
-              <span>Send Email</span>
+              <span>Send Message</span>
             </Button>
           </DialogFooter>
         </DialogContent>

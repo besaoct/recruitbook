@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -23,9 +23,11 @@ import {
   MapPin,
   Laptop,
   Briefcase,
-  DollarSign,
+  Trash2,
   Tag,
   X,
+  DollarSign,
+  Globe,
   Sparkles,
 } from "lucide-react";
 import {
@@ -37,7 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { RoleGuard } from "@/components/auth/role-guard";
-import { createJob } from "@/lib/actions/jobs";
+import { getJobById, updateJob, deleteJob } from "@/lib/actions/jobs";
 import {
   getDepartments,
   createDepartment,
@@ -55,90 +57,65 @@ import {
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { BenefitsRepeater, BenefitItem, BENEFIT_PRESETS } from "@/components/jobs/benefits-repeater";
 
-export default function CreateJobPage() {
+interface EditJobPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function EditJobPage({ params }: EditJobPageProps) {
+  const { id: jobId } = use(params);
   const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Taxonomy Master Lookups
   const [departments, setDepartments] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [workModesList, setWorkModesList] = useState<any[]>([]);
   const [employmentTypesList, setEmploymentTypesList] = useState<any[]>([]);
   const [experienceLevelsList, setExperienceLevelsList] = useState<any[]>([]);
   const [educationLevelsList, setEducationLevelsList] = useState<any[]>([]);
-  const [loadingLookups, setLoadingLookups] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form State - Core Info
+  // Form State - 1. Role Info & Lifecycle
   const [title, setTitle] = useState("");
-  const [reqCode, setReqCode] = useState(`REQ-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`);
+  const [reqCode, setReqCode] = useState("");
+  const [status, setStatus] = useState<"draft" | "published" | "on_hold" | "closed">("published");
   const [departmentId, setDepartmentId] = useState("");
   const [locationId, setLocationId] = useState("");
-  const [locationText, setLocationText] = useState("San Francisco, CA / Remote");
+  const [locationText, setLocationText] = useState("");
   const [workMode, setWorkMode] = useState("hybrid");
   const [employmentType, setEmploymentType] = useState("full_time");
-  const [experienceLevel, setExperienceLevel] = useState("senior");
+  const [experienceLevel, setExperienceLevel] = useState("mid");
   const [educationLevel, setEducationLevel] = useState("bachelors");
   const [vacancies, setVacancies] = useState("1");
   const [targetStartDate, setTargetStartDate] = useState("");
 
-  // Compensation
+  // 2. Compensation & Equity
   const [currency, setCurrency] = useState("USD");
   const [payFrequency, setPayFrequency] = useState("annual");
-  const [salaryMin, setSalaryMin] = useState("140000");
-  const [salaryMax, setSalaryMax] = useState("190000");
+  const [salaryMin, setSalaryMin] = useState("120000");
+  const [salaryMax, setSalaryMax] = useState("160000");
   const [isSalaryPublic, setIsSalaryPublic] = useState(true);
-  const [equityRange, setEquityRange] = useState("0.10% – 0.25% ISO Stock Options");
-  const [bonusStructure, setBonusStructure] = useState("Up to 15% annual performance bonus");
-  const [relocationAssistance, setRelocationAssistance] = useState("Visa sponsorship and relocation stipend available");
+  const [equityRange, setEquityRange] = useState("");
+  const [bonusStructure, setBonusStructure] = useState("");
+  const [relocationAssistance, setRelocationAssistance] = useState("");
 
-  // Benefits Repeater
-  const [benefitsList, setBenefitsList] = useState<BenefitItem[]>([
-    {
-      id: "b1",
-      title: BENEFIT_PRESETS[0].title,
-      description: BENEFIT_PRESETS[0].description,
-      category: BENEFIT_PRESETS[0].category,
-    },
-    {
-      id: "b2",
-      title: BENEFIT_PRESETS[1].title,
-      description: BENEFIT_PRESETS[1].description,
-      category: BENEFIT_PRESETS[1].category,
-    },
-    {
-      id: "b3",
-      title: BENEFIT_PRESETS[3].title,
-      description: BENEFIT_PRESETS[3].description,
-      category: BENEFIT_PRESETS[3].category,
-    },
-    {
-      id: "b4",
-      title: BENEFIT_PRESETS[4].title,
-      description: BENEFIT_PRESETS[4].description,
-      category: BENEFIT_PRESETS[4].category,
-    },
-  ]);
+  // 3. Benefits Repeater
+  const [benefitsList, setBenefitsList] = useState<BenefitItem[]>([]);
 
-  // Skills
-  const [primarySkills, setPrimarySkills] = useState<string[]>(["TypeScript", "React", "Node.js", "PostgreSQL"]);
-  const [secondarySkills, setSecondarySkills] = useState<string[]>(["Docker", "AWS", "GraphQL", "Redis"]);
+  // 4. Skills & Competencies
+  const [primarySkills, setPrimarySkills] = useState<string[]>([]);
+  const [secondarySkills, setSecondarySkills] = useState<string[]>([]);
   const [primarySkillInput, setPrimarySkillInput] = useState("");
   const [secondarySkillInput, setSecondarySkillInput] = useState("");
 
-  // Rich Text Fields
-  const [summary, setSummary] = useState(
-    "<p>We are seeking an experienced specialist to join our core engineering organization. In this role, you will build scalable distributed systems, champion architecture best practices, and collaborate closely with product management and design to deliver mission-critical software.</p>"
-  );
-  const [responsibilities, setResponsibilities] = useState(
-    "<ul><li>Architect, develop, and maintain performant backend services and APIs.</li><li>Collaborate with cross-functional teams to define technical scope and roadmap deliverables.</li><li>Mentor fellow engineers and conduct thorough, constructive code reviews.</li><li>Identify and remediate performance bottlenecks, security vulnerabilities, and reliability concerns.</li></ul>"
-  );
-  const [requirements, setRequirements] = useState(
-    "<ul><li>5+ years of demonstrable software engineering experience in production environments.</li><li>Solid understanding of relational database schema design, indexing, and query optimization.</li><li>Strong background building type-safe modern applications with TypeScript / Node.js / Go.</li><li>Excellent communication and problem-solving skills in a high-velocity environment.</li></ul>"
-  );
-  const [niceToHave, setNiceToHave] = useState(
-    "<ul><li>Hands-on experience with Kubernetes, Terraform, and cloud-native infrastructure.</li><li>Prior contribution to open-source developer tooling or developer platforms.</li><li>Familiarity with distributed caching, event streaming (Kafka/RabbitMQ), and microfrontends.</li></ul>"
-  );
-  const [aboutTeam, setAboutTeam] = useState(
-    "<p>Our team values autonomy, direct ownership, continuous learning, and pragmatic engineering. We believe in building resilient software while fostering a collaborative, supportive, and inclusive culture.</p>"
-  );
+  // 5. Rich Text Content
+  const [summary, setSummary] = useState("");
+  const [responsibilities, setResponsibilities] = useState("");
+  const [requirements, setRequirements] = useState("");
+  const [niceToHave, setNiceToHave] = useState("");
+  const [aboutTeam, setAboutTeam] = useState("");
 
   // Quick-Add Modals State
   const [addDeptOpen, setAddDeptOpen] = useState(false);
@@ -178,9 +155,11 @@ export default function CreateJobPage() {
   const [newEduLevelDesc, setNewEduLevelDesc] = useState("");
   const [isAddingEduLevel, setIsAddingEduLevel] = useState(false);
 
-  const loadMetadata = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const [deptList, locList, wmList, etList, expList, eduList] = await Promise.all([
+      const [jobData, deptList, locList, wmList, etList, expList, eduList] = await Promise.all([
+        getJobById(jobId),
         getDepartments(),
         getLocations(),
         getWorkModes(),
@@ -188,6 +167,13 @@ export default function CreateJobPage() {
         getExperienceLevels(),
         getEducationLevels(),
       ]);
+
+      if (!jobData) {
+        toast.error("Job opening not found");
+        router.push("/jobs");
+        return;
+      }
+
       setDepartments(deptList);
       setLocations(locList);
       setWorkModesList(wmList);
@@ -195,24 +181,73 @@ export default function CreateJobPage() {
       setExperienceLevelsList(expList);
       setEducationLevelsList(eduList);
 
-      if (deptList[0] && !departmentId) setDepartmentId(deptList[0].id);
-      if (locList[0] && !locationId) setLocationId(locList[0].id);
-      if (wmList[0] && !workMode) setWorkMode(wmList[0].slug);
-      if (etList[0] && !employmentType) setEmploymentType(etList[0].slug);
-      if (expList[0] && !experienceLevel) setExperienceLevel(expList[0].slug);
-      if (eduList[0] && !educationLevel) setEducationLevel(eduList[0].slug);
+      // Populate Form State
+      setTitle(jobData.title || "");
+      setReqCode(jobData.reqCode || `REQ-${Math.floor(1000 + Math.random() * 9000)}`);
+      setStatus((jobData.status as any) || "published");
+      setDepartmentId(jobData.departmentId || deptList[0]?.id || "");
+      setLocationId(jobData.locationId || locList[0]?.id || "");
+      setLocationText(jobData.locationText || "");
+      setWorkMode(jobData.workMode || "hybrid");
+      setEmploymentType(jobData.employmentType || "full_time");
+      setExperienceLevel(jobData.experienceLevel || "mid");
+      setEducationLevel(jobData.educationLevel || "bachelors");
+      setVacancies(String(jobData.vacancies || 1));
+      setTargetStartDate(
+        jobData.targetStartDate ? new Date(jobData.targetStartDate).toISOString().split("T")[0] : ""
+      );
+
+      setCurrency(jobData.currency || "USD");
+      setPayFrequency(jobData.payFrequency || "annual");
+      setSalaryMin(String(jobData.salaryMin || 100000));
+      setSalaryMax(String(jobData.salaryMax || 150000));
+      setIsSalaryPublic(jobData.isSalaryPublic !== false);
+      setEquityRange(jobData.equityRange || "");
+      setBonusStructure(jobData.bonusStructure || "");
+      setRelocationAssistance(jobData.relocationAssistance || "");
+
+      // Handle benefits list with fallback to presets if empty
+      if (Array.isArray(jobData.benefitsList) && jobData.benefitsList.length > 0) {
+        setBenefitsList(jobData.benefitsList as BenefitItem[]);
+      } else if (jobData.benefits) {
+        // Parse comma separated benefits or default
+        const parsed = jobData.benefits.split(",").map((b: string, i: number) => ({
+          id: `b_${i}`,
+          title: b.trim(),
+          category: "custom" as const,
+        }));
+        setBenefitsList(parsed.length > 0 ? parsed : [
+          { id: "b1", title: BENEFIT_PRESETS[0].title, description: BENEFIT_PRESETS[0].description, category: BENEFIT_PRESETS[0].category },
+          { id: "b2", title: BENEFIT_PRESETS[1].title, description: BENEFIT_PRESETS[1].description, category: BENEFIT_PRESETS[1].category },
+        ]);
+      } else {
+        setBenefitsList([
+          { id: "b1", title: BENEFIT_PRESETS[0].title, description: BENEFIT_PRESETS[0].description, category: BENEFIT_PRESETS[0].category },
+          { id: "b2", title: BENEFIT_PRESETS[1].title, description: BENEFIT_PRESETS[1].description, category: BENEFIT_PRESETS[1].category },
+        ]);
+      }
+
+      setPrimarySkills(Array.isArray(jobData.skills) ? (jobData.skills as string[]) : []);
+      setSecondarySkills(Array.isArray(jobData.secondarySkills) ? (jobData.secondarySkills as string[]) : []);
+
+      setSummary(jobData.summary || "");
+      setResponsibilities(jobData.responsibilities || "");
+      setRequirements(jobData.requirements || "");
+      setNiceToHave(jobData.niceToHave || "");
+      setAboutTeam(jobData.aboutTeam || "");
     } catch (err) {
-      console.error("Failed to load metadata:", err);
+      console.error("Failed to load job details:", err);
+      toast.error("Failed to load job details");
     } finally {
-      setLoadingLookups(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadMetadata();
-  }, []);
+    loadData();
+  }, [jobId]);
 
-  // Skill Chip Handlers
+  // Skill Handlers
   const handleAddPrimarySkill = (val?: string) => {
     const clean = (val || primarySkillInput).trim();
     if (!clean) return;
@@ -243,8 +278,9 @@ export default function CreateJobPage() {
       setAddDeptOpen(false);
       setNewDeptName("");
       setNewDeptCode("");
-      await loadMetadata();
-      if (res?.id) setDepartmentId(res.id);
+      const updated = await getDepartments();
+      setDepartments(updated);
+      if (res.id) setDepartmentId(res.id);
     } catch (err: any) {
       toast.error(err.message || "Failed to add department");
     } finally {
@@ -262,13 +298,14 @@ export default function CreateJobPage() {
       const res = await createLocation({
         name: newLocName.trim(),
         city: newLocCity.trim(),
-        country: newLocCountry.trim() || "United States",
+        country: newLocCountry.trim(),
       });
       toast.success(`Location "${newLocName}" added`);
       setAddLocOpen(false);
       setNewLocName("");
       setNewLocCity("");
-      await loadMetadata();
+      const updated = await getLocations();
+      setLocations(updated);
       if (res.id) setLocationId(res.id);
     } catch (err: any) {
       toast.error(err.message || "Failed to add location");
@@ -295,7 +332,8 @@ export default function CreateJobPage() {
       setNewWorkModeName("");
       setNewWorkModeSlug("");
       setNewWorkModeDesc("");
-      await loadMetadata();
+      const updated = await getWorkModes();
+      setWorkModesList(updated);
       setWorkMode(slug);
     } catch (err: any) {
       toast.error(err.message || "Failed to add work mode");
@@ -322,7 +360,8 @@ export default function CreateJobPage() {
       setNewEmpTypeName("");
       setNewEmpTypeSlug("");
       setNewEmpTypeDesc("");
-      await loadMetadata();
+      const updated = await getEmploymentTypes();
+      setEmploymentTypesList(updated);
       setEmploymentType(slug);
     } catch (err: any) {
       toast.error(err.message || "Failed to add employment type");
@@ -353,7 +392,8 @@ export default function CreateJobPage() {
       setNewExpLevelMinYears(0);
       setNewExpLevelMaxYears(2);
       setNewExpLevelDesc("");
-      await loadMetadata();
+      const updated = await getExperienceLevels();
+      setExperienceLevelsList(updated);
       setExperienceLevel(slug);
     } catch (err: any) {
       toast.error(err.message || "Failed to add experience level");
@@ -380,7 +420,8 @@ export default function CreateJobPage() {
       setNewEduLevelName("");
       setNewEduLevelSlug("");
       setNewEduLevelDesc("");
-      await loadMetadata();
+      const updated = await getEducationLevels();
+      setEducationLevelsList(updated);
       setEducationLevel(slug);
     } catch (err: any) {
       toast.error(err.message || "Failed to add education requirement");
@@ -389,20 +430,22 @@ export default function CreateJobPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent, publish = true) => {
-    e.preventDefault();
+  const handleSave = async (e?: React.FormEvent, overrideStatus?: "draft" | "published" | "on_hold" | "closed") => {
+    if (e) e.preventDefault();
     if (!title.trim()) {
       toast.error("Please enter a job title");
       return;
     }
 
+    const finalStatus = overrideStatus || status;
+
     setIsSubmitting(true);
     try {
-      await createJob({
+      await updateJob(jobId, {
         title: title.trim(),
         reqCode: reqCode.trim() || undefined,
-        departmentId: departmentId || undefined,
-        locationId: locationId || undefined,
+        departmentId: departmentId || null,
+        locationId: locationId || null,
         locationText: locationText.trim() || undefined,
         workMode,
         employmentType,
@@ -415,9 +458,10 @@ export default function CreateJobPage() {
         currency,
         payFrequency,
         isSalaryPublic,
-        equityRange: equityRange.trim() || undefined,
-        bonusStructure: bonusStructure.trim() || undefined,
-        relocationAssistance: relocationAssistance.trim() || undefined,
+        equityRange: equityRange.trim() || null,
+        bonusStructure: bonusStructure.trim() || null,
+        relocationAssistance: relocationAssistance.trim() || null,
+        status: finalStatus,
         summary,
         responsibilities,
         requirements,
@@ -427,20 +471,30 @@ export default function CreateJobPage() {
         benefits: benefitsList.map((b) => b.title).join(", "),
         skills: primarySkills,
         secondarySkills,
-        status: publish ? "published" : "draft",
       });
 
-      toast.success(
-        publish
-          ? `Job opening "${title}" published live to Careers portal!`
-          : `Job draft "${title}" saved successfully.`,
-      );
-
+      toast.success(`Job requisition "${title}" updated successfully!`);
       router.push("/jobs");
     } catch (err: any) {
-      toast.error(err.message || "Failed to create job requisition");
+      toast.error(err.message || "Failed to update job requisition");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Permanently delete the requisition "${title}"? This will also remove associated applications.`)) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await deleteJob(jobId);
+      toast.success("Job opening deleted successfully");
+      router.push("/jobs");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete job");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -454,54 +508,84 @@ export default function CreateJobPage() {
     { token: "{{company_name}}", label: "Company Name" },
   ];
 
+  if (loading) {
+    return (
+      <div className="page flex items-center justify-center min-h-100">
+        <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="size-6 animate-spin text-copper" />
+          <span>Loading requisition details...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page max-w-4xl pb-20">
       <PageHeader
-        title="Create Job Opening"
-        description="Configure complete requisition specifications, departmental allocation, compensation band, benefits repeater, and candidate requirements."
+        title={`Edit Requisition: ${title || "Job Opening"}`}
+        description="Comprehensive configuration of requisition details, departmental allocation, compensation transparency, benefits repeater, and candidate specifications."
         breadcrumbs={[
           { label: "Jobs", href: "/jobs" },
-          { label: "Create Opening" },
+          { label: "Edit Requisition" },
         ]}
         actions={
           <div className="flex items-center gap-2">
             <Link href="/jobs">
               <Button variant="outline" size="sm" className="gap-1 text-xs">
                 <ArrowLeft className="size-3.5" />
-                <span>Cancel</span>
+                <span>Back</span>
               </Button>
             </Link>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isSubmitting}
-              onClick={(e) => handleSubmit(e, false)}
-              className="text-xs"
-            >
-              Save as Draft
-            </Button>
+
+            {status === "published" && (
+              <Link href={`/careers/apply/${jobId}`} target="_blank">
+                <Button variant="outline" size="sm" className="gap-1 text-xs text-copper border-copper/30 hover:bg-copper/10">
+                  <Globe className="size-3.5" />
+                  <span>View on Careers</span>
+                </Button>
+              </Link>
+            )}
+
             <Button
               size="sm"
               variant="accent"
               disabled={isSubmitting}
-              onClick={(e) => handleSubmit(e, true)}
+              onClick={() => handleSave()}
               className="gap-1 text-xs"
             >
               {isSubmitting ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-              <span>Publish Opening</span>
+              <span>Save Changes</span>
             </Button>
           </div>
         }
       />
 
-      <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-6">
+      <form onSubmit={(e) => handleSave(e)} className="space-y-6">
         {/* 1. Basic Information & Organization Context */}
         <Card className="shadow-none">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">1. Role Information &amp; Organizational Context</CardTitle>
-            <CardDescription className="text-xs">
-              Primary designation, requisition reference, department allocation, and work arrangement
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-semibold">1. Role Information &amp; Status</CardTitle>
+                <CardDescription className="text-xs">
+                  Primary title, requisition code, status lifecycle, department, and work mode
+                </CardDescription>
+              </div>
+              <Badge
+                variant="outline"
+                className={`text-[10px] uppercase font-semibold tracking-wider ${
+                  status === "published"
+                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                    : status === "draft"
+                    ? "bg-muted text-muted-foreground"
+                    : status === "on_hold"
+                    ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                    : "bg-destructive/10 text-destructive border-destructive/20"
+                }`}
+              >
+                {status.replace("_", " ")}
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4 text-xs">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -514,6 +598,20 @@ export default function CreateJobPage() {
                   className="h-8 text-xs"
                   required
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="field-label">Requisition Status</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as any)}
+                  className="h-8 w-full rounded-xs border border-border bg-card px-2.5 text-xs text-foreground focus:border-ring"
+                >
+                  <option value="published">Published (Live on Careers)</option>
+                  <option value="draft">Draft (Internal Only)</option>
+                  <option value="on_hold">On Hold</option>
+                  <option value="closed">Closed / Filled</option>
+                </select>
               </div>
 
               <div className="space-y-1.5">
@@ -866,12 +964,12 @@ export default function CreateJobPage() {
             <div className="flex items-center gap-2 pt-2 border-t border-border/70">
               <input
                 type="checkbox"
-                id="isSalaryPublic"
+                id="editIsSalaryPublic"
                 checked={isSalaryPublic}
                 onChange={(e) => setIsSalaryPublic(e.target.checked)}
                 className="h-4 w-4 rounded-xs border-border text-copper focus:ring-copper cursor-pointer"
               />
-              <label htmlFor="isSalaryPublic" className="text-xs text-foreground font-medium cursor-pointer">
+              <label htmlFor="editIsSalaryPublic" className="text-xs text-foreground font-medium cursor-pointer">
                 Display salary range publicly on public Careers &amp; Application portal
               </label>
             </div>
@@ -1080,34 +1178,52 @@ export default function CreateJobPage() {
         </Card>
 
         {/* Bottom Actions Bar */}
-        <div className="flex items-center justify-between p-4 bg-card rounded-xs border border-border">
-          <Link href="/jobs">
-            <Button type="button" variant="outline" size="sm" className="text-xs">
-              Cancel
-            </Button>
-          </Link>
-
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 bg-card rounded-xs border border-border">
+          <RoleGuard permission="canDeleteJobs">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              disabled={isSubmitting}
-              onClick={(e) => handleSubmit(e, false)}
-              className="text-xs"
+              disabled={isDeleting}
+              onClick={handleDelete}
+              className="gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
             >
-              Save as Draft
+              {isDeleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+              <span>Delete Requisition</span>
             </Button>
+          </RoleGuard>
+
+          <div className="flex items-center justify-end gap-2">
+            <Link href="/jobs">
+              <Button type="button" variant="outline" size="sm" className="text-xs">
+                Cancel
+              </Button>
+            </Link>
+
+            {status !== "published" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isSubmitting}
+                onClick={() => handleSave(undefined, "published")}
+                className="gap-1 text-xs text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
+              >
+                <CheckCircle2 className="size-3.5" />
+                <span>Save &amp; Publish Live</span>
+              </Button>
+            )}
 
             <Button
-              type="submit"
+              type="button"
               variant="accent"
               size="sm"
               disabled={isSubmitting}
-              className="gap-1 text-xs min-w-32.5"
+              onClick={() => handleSave()}
+              className="gap-1 text-xs min-w-30"
             >
               {isSubmitting ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-              <span>Publish Opening</span>
+              <span>Save Changes</span>
             </Button>
           </div>
         </div>

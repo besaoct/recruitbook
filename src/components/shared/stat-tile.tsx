@@ -49,7 +49,7 @@ export function StatTile({
       )}
     >
       <span
-        className={cn("absolute inset-y-0 left-0 w-[3px]", TONE_BAR[tone])}
+        className={cn("absolute inset-y-0 left-0 w-0.75", TONE_BAR[tone])}
         aria-hidden
       />
       <div className="flex items-start justify-between gap-2 pl-1.5">

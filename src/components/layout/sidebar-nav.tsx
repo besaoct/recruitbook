@@ -145,7 +145,7 @@ function NavItem({
         <TooltipContent
           side="right"
           sideOffset={8}
-          className="z-50 shadow-md p-1 min-w-[170px] pointer-events-auto bg-popover text-popover-foreground border border-border"
+          className="z-50 shadow-md p-1 min-w-42.5 pointer-events-auto bg-popover text-popover-foreground border border-border"
         >
           {/* Main Item Link */}
           <Link
@@ -245,7 +245,7 @@ function NavItem({
       )}
 
       {hasChildren && open ? (
-        <div className="relative ml-[19px] mt-0.5 space-y-px">
+        <div className="relative ml-4.75 mt-0.5 space-y-px">
           {/* Vertical rail connecting the child links to their parent */}
           <span className="absolute bottom-2 left-0 top-0 w-px bg-shell-foreground/15" />
           {item.children!.map((child) => {

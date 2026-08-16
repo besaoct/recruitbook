@@ -1,20 +1,23 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  TableShell,
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  THead,
+  TH,
+  SortableTH,
+  TBody,
+  TR,
+  TD,
+  EmptyRow,
+  ClientPagination,
+} from "@/components/shared/data-table";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StatTile, StatGrid } from "@/components/shared/stat-tile";
@@ -60,6 +63,12 @@ function InterviewsContent() {
   const [interviewsList, setInterviewsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Sorting & Client Pagination
+  const [sortField, setSortField] = useState<string>("scheduledStart");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
   // Scorecard modal state
   const [activeScorecardInterview, setActiveScorecardInterview] = useState<any>(null);
   const [rating, setRating] = useState(5);
@@ -82,6 +91,7 @@ function InterviewsContent() {
         status: activeView === "upcoming" ? "scheduled" : activeView === "completed" ? "completed" : activeView === "cancelled" ? "cancelled" : undefined,
       });
       setInterviewsList(data);
+      setPage(1);
     } catch (err) {
       console.error("Failed to load interviews:", err);
       toast.error("Failed to load interviews");
@@ -142,10 +152,10 @@ function InterviewsContent() {
   };
 
   const handleCancelInterview = async (id: string) => {
-    if (!confirm("Cancel this scheduled interview round?")) return;
+    if (!confirm("Are you sure you want to cancel this interview?")) return;
     try {
       await updateInterviewStatus(id, "cancelled");
-      toast.success("Interview cancelled.");
+      toast.success("Interview marked as cancelled");
       await loadData();
     } catch {
       toast.error("Failed to cancel interview");
@@ -155,8 +165,35 @@ function InterviewsContent() {
   const scheduledCount = interviewsList.filter((i) => i.status === "scheduled").length;
   const completedCount = interviewsList.filter((i) => i.status === "completed").length;
 
+  const handleSort = (field: string, direction: "asc" | "desc") => {
+    setSortField(field);
+    setSortDirection(direction);
+  };
+
+  // Processed sorted & paginated interviews
+  const sortedInterviews = useMemo(() => {
+    return [...interviewsList].sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+
+      if (typeof aVal === "string") {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal || "").toLowerCase();
+      }
+
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [interviewsList, sortField, sortDirection]);
+
+  const paginatedInterviews = useMemo(() => {
+    const from = (page - 1) * pageSize;
+    return sortedInterviews.slice(from, from + pageSize);
+  }, [sortedInterviews, page, pageSize]);
+
   return (
-    <div className="page">
+    <div className="page space-y-4">
       <PageHeader
         title="Interview Scheduling &amp; Scorecards"
         description="Manage panel interview rounds, structured scorecards, candidate availability, and hiring recommendations."
@@ -209,7 +246,7 @@ function InterviewsContent() {
             type="button"
             onClick={() => handleViewChange(tab.id)}
             className={cn(
-              "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap",
+              "text-xs py-2 px-1 font-medium transition-all border-b-2 -mb-px whitespace-nowrap cursor-pointer",
               activeView === tab.id
                 ? "border-copper text-foreground font-semibold"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
@@ -220,77 +257,95 @@ function InterviewsContent() {
         ))}
       </div>
 
-      {/* Interviews Table */}
-      <Card className="shadow-none overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-            <Loader2 className="size-4 animate-spin text-copper" />
-            <span>Loading scheduled interviews...</span>
-          </div>
-        ) : interviewsList.length === 0 ? (
-          <div className="p-12 text-center text-xs text-muted-foreground space-y-2">
-            <div>No interview rounds found in this view.</div>
-            <RoleGuard permission="canScheduleInterviews">
-              <Link href="/interviews/schedule">
-                <Button size="xs" variant="outline" className="gap-1 mt-2">
-                  <Plus className="size-3" />
-                  <span>Schedule First Round</span>
-                </Button>
-              </Link>
-            </RoleGuard>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="text-xs">
-                <TableHead>Candidate &amp; Position</TableHead>
-                <TableHead>Interview Round</TableHead>
-                <TableHead>Scheduled Time</TableHead>
-                <TableHead>Meeting Format</TableHead>
-                <TableHead>Scorecard Status</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {interviewsList.map((intv) => (
-                <TableRow key={intv.id} className="text-xs">
-                  <TableCell className="font-medium">
+      {/* StoqBook TableShell */}
+      <TableShell>
+        <Table>
+          <THead>
+            <SortableTH
+              field="candidateName"
+              currentSort={sortField === "candidateName" ? (sortDirection === "asc" ? "candidateName" : "-candidateName") : ""}
+              onSort={handleSort}
+            >
+              Candidate &amp; Position
+            </SortableTH>
+            <TH>Interview Round</TH>
+            <SortableTH
+              field="scheduledStart"
+              currentSort={sortField === "scheduledStart" ? (sortDirection === "asc" ? "scheduledStart" : "-scheduledStart") : ""}
+              onSort={handleSort}
+            >
+              Scheduled Time
+            </SortableTH>
+            <TH>Meeting Format</TH>
+            <TH>Scorecard Status</TH>
+            <TH>Status</TH>
+            <TH align="right">Actions</TH>
+          </THead>
+          <TBody>
+            {loading ? (
+              <EmptyRow colSpan={7}>
+                <div className="flex flex-col items-center justify-center gap-2 py-4">
+                  <Loader2 className="size-5 animate-spin text-copper" />
+                  <span className="text-xs text-muted-foreground">Loading scheduled interviews...</span>
+                </div>
+              </EmptyRow>
+            ) : paginatedInterviews.length === 0 ? (
+              <EmptyRow colSpan={7}>
+                <div className="py-6 text-center space-y-2">
+                  <p className="text-xs text-muted-foreground">No interview rounds found in this view.</p>
+                  <RoleGuard permission="canScheduleInterviews">
+                    <Link href="/interviews/schedule">
+                      <Button size="xs" variant="outline" className="gap-1 text-xs">
+                        <Plus className="size-3" />
+                        <span>Schedule First Round</span>
+                      </Button>
+                    </Link>
+                  </RoleGuard>
+                </div>
+              </EmptyRow>
+            ) : (
+              paginatedInterviews.map((intv) => (
+                <TR key={intv.id}>
+                  {/* Candidate & Position */}
+                  <TD>
                     <div>
-                      <span className="font-semibold text-foreground text-sm block">
+                      <span className="font-semibold text-foreground text-xs block">
                         {intv.candidateName}
                       </span>
                       <span className="text-[11px] text-muted-foreground">
                         {intv.jobTitle}
                       </span>
                     </div>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Interview Round */}
+                  <TD>
                     <div className="space-y-0.5">
                       <div className="font-medium text-foreground text-xs">
                         {intv.roundTitle}
                       </div>
-                      <Badge variant="outline" className="text-[9px] uppercase tracking-wider">
+                      <Badge variant="outline" className="text-[9px] uppercase tracking-wider font-mono">
                         {intv.roundType} ({intv.durationMinutes} min)
                       </Badge>
                     </div>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Scheduled Time */}
+                  <TD>
                     <div className="text-xs text-foreground font-medium flex items-center gap-1">
-                      <Clock className="size-3 text-copper" />
+                      <Clock className="size-3 text-copper shrink-0" />
                       <span>{new Date(intv.scheduledStart).toLocaleDateString()}</span>
                     </div>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-[11px] text-muted-foreground font-mono">
                       {new Date(intv.scheduledStart).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </span>
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Meeting Format */}
+                  <TD>
                     {intv.meetingLink ? (
                       <a
                         href={intv.meetingLink}
@@ -298,7 +353,7 @@ function InterviewsContent() {
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-xs bg-muted hover:bg-copper/20 hover:text-copper transition-colors text-[11px] text-foreground font-medium"
                       >
-                        <Video className="size-3 text-copper" />
+                        <Video className="size-3 text-copper shrink-0" />
                         <span>Join Session</span>
                       </a>
                     ) : (
@@ -306,15 +361,16 @@ function InterviewsContent() {
                         {intv.format}
                       </span>
                     )}
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Scorecard Status */}
+                  <TD>
                     {intv.scorecards && intv.scorecards.length > 0 ? (
                       <button
                         onClick={() => setViewScorecardInterview(intv)}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-success hover:underline"
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 hover:underline cursor-pointer"
                       >
-                        <CheckCircle2 className="size-3" />
+                        <CheckCircle2 className="size-3 shrink-0" />
                         <span>{intv.scorecards[0].recommendation.replace("_", " ").toUpperCase()} ({intv.scorecards[0].overallRating}/5)</span>
                       </button>
                     ) : (
@@ -322,13 +378,15 @@ function InterviewsContent() {
                         Pending Evaluation
                       </span>
                     )}
-                  </TableCell>
+                  </TD>
 
-                  <TableCell>
+                  {/* Status */}
+                  <TD>
                     <StatusBadge status={intv.status} />
-                  </TableCell>
+                  </TD>
 
-                  <TableCell className="text-right">
+                  {/* Actions */}
+                  <TD align="right">
                     <div className="flex items-center justify-end gap-1">
                       {intv.scorecards && intv.scorecards.length > 0 ? (
                         <RoleGuard permission="canViewScorecards">
@@ -364,19 +422,29 @@ function InterviewsContent() {
                           variant="ghost"
                           title="Cancel Round"
                           onClick={() => handleCancelInterview(intv.id)}
-                          className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive"
+                          className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
                         >
                           <XCircle className="size-3.5" />
                         </Button>
                       )}
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
+                  </TD>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </Table>
+
+        {/* StoqBook ClientPagination */}
+        <ClientPagination
+          page={page}
+          limit={pageSize}
+          total={interviewsList.length}
+          onPageChange={setPage}
+          onLimitChange={setPageSize}
+          limitOptions={[10, 25, 50, 100]}
+        />
+      </TableShell>
 
       {/* Submit Scorecard Modal */}
       <Dialog
@@ -427,69 +495,69 @@ function InterviewsContent() {
 
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
-                <label className="field-label">Technical Score</label>
+                <label className="field-label">Technical (1-5)</label>
                 <Input
                   type="number"
                   min="1"
                   max="5"
                   value={techScore}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTechScore(Number(e.target.value))}
-                  className="h-8 text-xs"
+                  onChange={(e) => setTechScore(Number(e.target.value))}
+                  className="h-8 text-xs font-mono"
                 />
               </div>
               <div className="space-y-1">
-                <label className="field-label">Communication</label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="5"
-                  value={commScore}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCommScore(Number(e.target.value))}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="field-label">Culture &amp; Values</label>
+                <label className="field-label">Culture (1-5)</label>
                 <Input
                   type="number"
                   min="1"
                   max="5"
                   value={cultureScore}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCultureScore(Number(e.target.value))}
-                  className="h-8 text-xs"
+                  onChange={(e) => setCultureScore(Number(e.target.value))}
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="field-label">Comm (1-5)</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={commScore}
+                  onChange={(e) => setCommScore(Number(e.target.value))}
+                  className="h-8 text-xs font-mono"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="field-label">Strengths &amp; Key Signals</label>
+              <label className="field-label">Key Strengths</label>
               <textarea
                 rows={2}
                 value={strengths}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setStrengths(e.target.value)}
-                placeholder="Key technical strengths observed during the session..."
+                onChange={(e) => setStrengths(e.target.value)}
+                placeholder="Observed exceptional abilities..."
                 className="w-full rounded-xs border border-border bg-card p-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-copper"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="field-label">Concerns or Areas of Growth</label>
+              <label className="field-label">Key Concerns</label>
               <textarea
                 rows={2}
                 value={concerns}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setConcerns(e.target.value)}
-                placeholder="Any hesitation or areas needing further inquiry..."
+                onChange={(e) => setConcerns(e.target.value)}
+                placeholder="Gaps or potential growth areas..."
                 className="w-full rounded-xs border border-border bg-card p-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-copper"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="field-label">Detailed Notes &amp; Summary</label>
+              <label className="field-label">Detailed Notes &amp; Evidence</label>
               <textarea
-                rows={2}
+                rows={3}
                 value={notes}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
-                placeholder="Overall summary for hiring committee review..."
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Panel conversation observations..."
                 className="w-full rounded-xs border border-border bg-card p-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-copper"
               />
             </div>
@@ -511,7 +579,7 @@ function InterviewsContent() {
               className="gap-1"
             >
               {isSubmittingScorecard ? <Loader2 className="size-3 animate-spin" /> : null}
-              <span>Submit Evaluation Scorecard</span>
+              <span>Submit Evaluation</span>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -522,73 +590,91 @@ function InterviewsContent() {
         open={!!viewScorecardInterview}
         onOpenChange={(open) => !open && setViewScorecardInterview(null)}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold flex items-center gap-2">
-              <span>Evaluation Scorecard</span>
-              <Badge variant="soft-success" className="text-[10px] uppercase">
-                {viewScorecardInterview?.scorecards?.[0]?.recommendation.replace("_", " ")}
-              </Badge>
+              <Award className="size-4 text-copper" />
+              <span>Scorecard Record: {viewScorecardInterview?.candidateName}</span>
             </DialogTitle>
             <div className="text-xs text-muted-foreground">
-              Candidate: {viewScorecardInterview?.candidateName} • {viewScorecardInterview?.roundTitle}
+              Round: {viewScorecardInterview?.roundTitle} • Evaluator: {viewScorecardInterview?.scorecards?.[0]?.interviewerName || "Panel"}
             </div>
           </DialogHeader>
 
           {viewScorecardInterview?.scorecards?.[0] && (
-            <div className="space-y-3 py-2 text-xs">
-              <div className="grid grid-cols-3 gap-2 p-3 bg-muted/40 rounded-xs border border-border text-center">
+            <div className="space-y-4 py-2 text-xs">
+              <div className="p-3 bg-muted/40 rounded-xs border border-border flex items-center justify-between">
                 <div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Recommendation
+                  </div>
+                  <div className="font-bold text-sm uppercase text-copper">
+                    {viewScorecardInterview.scorecards[0].recommendation.replace("_", " ")}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Overall Rating
+                  </div>
+                  <div className="font-bold text-foreground text-sm">
+                    {viewScorecardInterview.scorecards[0].overallRating} / 5.0 ★
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-2 border border-border rounded-xs">
                   <div className="text-[10px] text-muted-foreground">Technical</div>
-                  <div className="text-sm font-semibold text-foreground">
-                    {viewScorecardInterview.scorecards[0].technicalScore}/5
+                  <div className="font-semibold text-foreground text-xs">
+                    {viewScorecardInterview.scorecards[0].technicalScore || "—"} / 5
                   </div>
                 </div>
-                <div>
-                  <div className="text-[10px] text-muted-foreground">Culture</div>
-                  <div className="text-sm font-semibold text-foreground">
-                    {viewScorecardInterview.scorecards[0].cultureScore}/5
+                <div className="p-2 border border-border rounded-xs">
+                  <div className="text-[10px] text-muted-foreground">Culture Fit</div>
+                  <div className="font-semibold text-foreground text-xs">
+                    {viewScorecardInterview.scorecards[0].cultureScore || "—"} / 5
                   </div>
                 </div>
-                <div>
+                <div className="p-2 border border-border rounded-xs">
                   <div className="text-[10px] text-muted-foreground">Communication</div>
-                  <div className="text-sm font-semibold text-foreground">
-                    {viewScorecardInterview.scorecards[0].communicationScore}/5
+                  <div className="font-semibold text-foreground text-xs">
+                    {viewScorecardInterview.scorecards[0].communicationScore || "—"} / 5
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <div className="font-semibold text-foreground text-[11px]">Observed Strengths:</div>
-                <p className="text-muted-foreground leading-relaxed">
-                  {viewScorecardInterview.scorecards[0].strengths}
-                </p>
-              </div>
+              {viewScorecardInterview.scorecards[0].strengths && (
+                <div className="space-y-1">
+                  <div className="font-medium text-foreground">Demonstrated Strengths</div>
+                  <p className="text-muted-foreground bg-muted/20 p-2 rounded-xs border border-border">
+                    {viewScorecardInterview.scorecards[0].strengths}
+                  </p>
+                </div>
+              )}
 
-              <div className="space-y-1">
-                <div className="font-semibold text-foreground text-[11px]">Concerns / Gaps:</div>
-                <p className="text-muted-foreground leading-relaxed">
-                  {viewScorecardInterview.scorecards[0].concerns}
-                </p>
-              </div>
+              {viewScorecardInterview.scorecards[0].concerns && (
+                <div className="space-y-1">
+                  <div className="font-medium text-foreground">Identified Concerns</div>
+                  <p className="text-muted-foreground bg-muted/20 p-2 rounded-xs border border-border">
+                    {viewScorecardInterview.scorecards[0].concerns}
+                  </p>
+                </div>
+              )}
 
-              <div className="space-y-1">
-                <div className="font-semibold text-foreground text-[11px]">Feedback Notes:</div>
-                <p className="text-muted-foreground leading-relaxed">
-                  {viewScorecardInterview.scorecards[0].feedbackNotes}
-                </p>
-              </div>
-
-              <div className="text-[10px] text-muted-foreground pt-2 border-t border-border">
-                Evaluator: {viewScorecardInterview.scorecards[0].interviewerName} • Submitted{" "}
-                {new Date(viewScorecardInterview.scorecards[0].submittedAt).toLocaleDateString()}
-              </div>
+              {viewScorecardInterview.scorecards[0].feedbackNotes && (
+                <div className="space-y-1">
+                  <div className="font-medium text-foreground">Feedback Notes</div>
+                  <p className="text-muted-foreground bg-muted/20 p-2 rounded-xs border border-border">
+                    {viewScorecardInterview.scorecards[0].feedbackNotes}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
           <DialogFooter>
             <Button size="xs" variant="outline" onClick={() => setViewScorecardInterview(null)}>
-              Close
+              Close Scorecard
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -599,7 +685,13 @@ function InterviewsContent() {
 
 export default function InterviewsPage() {
   return (
-    <Suspense fallback={<div className="page p-8 text-xs text-muted-foreground">Loading interviews...</div>}>
+    <Suspense
+      fallback={
+        <div className="page flex items-center justify-center p-12">
+          <Loader2 className="size-6 animate-spin text-copper" />
+        </div>
+      }
+    >
       <InterviewsContent />
     </Suspense>
   );

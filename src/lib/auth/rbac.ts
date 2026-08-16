@@ -10,6 +10,11 @@ export type Permission =
   | "canManageUsers"
   | "canAssignRoles"
   | "canManageDepartments"
+  | "canManageLocations"
+  | "canManageWorkModes"
+  | "canManageEmploymentTypes"
+  | "canManageExperienceLevels"
+  | "canManageEducationLevels"
   | "canCreateJobs"
   | "canEditJobs"
   | "canDeleteJobs"
@@ -64,8 +69,38 @@ export const ALL_PERMISSIONS: PermissionDefinition[] = [
   {
     key: "canManageDepartments",
     category: "admin",
-    label: "Manage Departments & Locations",
-    description: "Configure corporate departments and global office hubs",
+    label: "Manage Departments",
+    description: "Configure corporate departments and organizational structure",
+  },
+  {
+    key: "canManageLocations",
+    category: "admin",
+    label: "Manage Office Locations",
+    description: "Configure global office locations and hiring hubs",
+  },
+  {
+    key: "canManageWorkModes",
+    category: "admin",
+    label: "Manage Work Modes",
+    description: "Configure dynamic work arrangements (Hybrid, Remote, On-Site, etc.)",
+  },
+  {
+    key: "canManageEmploymentTypes",
+    category: "admin",
+    label: "Manage Employment Types",
+    description: "Configure contract and employment classifications (Full-Time, Contract, etc.)",
+  },
+  {
+    key: "canManageExperienceLevels",
+    category: "admin",
+    label: "Manage Experience Levels",
+    description: "Configure seniority and experience tiers (Entry, Mid, Senior, Lead, etc.)",
+  },
+  {
+    key: "canManageEducationLevels",
+    category: "admin",
+    label: "Manage Education Requirements",
+    description: "Configure degree and educational qualification classifications",
   },
 
   // Jobs
@@ -98,34 +133,34 @@ export const ALL_PERMISSIONS: PermissionDefinition[] = [
   {
     key: "canAdvancePipeline",
     category: "candidates",
-    label: "Advance ATS Pipeline Stages",
-    description: "Transition applicants across the 8-stage ATS recruitment Kanban",
+    label: "Advance Candidate Pipeline",
+    description: "Move applicants across pipeline stages (Screening, Interview, Offer, Hired)",
   },
   {
     key: "canSendCommunications",
     category: "candidates",
-    label: "Send Candidate Emails",
-    description: "Dispatch automated email templates and direct candidate messages",
+    label: "Send Communications",
+    description: "Email candidates, send status updates, and dispatch offer documents",
   },
 
   // Interviews
   {
     key: "canScheduleInterviews",
     category: "interviews",
-    label: "Schedule Panel Interviews",
-    description: "Book interview rounds, generate meeting links, and notify interviewers",
+    label: "Schedule Interviews",
+    description: "Coordinate interview panel dates, times, and calendar invites",
   },
   {
     key: "canSubmitScorecard",
     category: "interviews",
-    label: "Submit Evaluation Scorecards",
-    description: "Record structured interview ratings, signals, and hiring recommendations",
+    label: "Submit Interview Scorecards",
+    description: "Evaluate candidate competence with structured ratings and notes",
   },
   {
     key: "canViewScorecards",
     category: "interviews",
-    label: "View Panel Scorecards",
-    description: "Review evaluation feedback and signals from other interview panel members",
+    label: "View All Scorecards",
+    description: "Inspect panel feedback submitted by other interviewers",
   },
 
   // Offers & HRM
@@ -172,6 +207,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "canManageSettings",
     "canManageUsers",
     "canManageDepartments",
+    "canManageLocations",
+    "canManageWorkModes",
+    "canManageEmploymentTypes",
+    "canManageExperienceLevels",
+    "canManageEducationLevels",
     "canCreateJobs",
     "canEditJobs",
     "canDeleteJobs",
@@ -188,6 +228,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "canViewReports",
   ],
   recruiter: [
+    "canManageDepartments",
+    "canManageLocations",
+    "canManageWorkModes",
+    "canManageEmploymentTypes",
+    "canManageExperienceLevels",
+    "canManageEducationLevels",
     "canCreateJobs",
     "canEditJobs",
     "canManageCandidates",

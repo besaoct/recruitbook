@@ -31,6 +31,18 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  TableShell,
+  Table,
+  THead,
+  TH,
+  SortableTH,
+  TBody,
+  TR,
+  TD,
+  EmptyRow,
+  ClientPagination,
+} from "@/components/shared/data-table";
 import { toast } from "sonner";
 import { getApplications, updateApplicationStage, rejectApplication, type ApplicationStage } from "@/lib/actions/applications";
 import { getJobs } from "@/lib/actions/jobs";
@@ -59,6 +71,12 @@ function ApplicationsContent() {
   const [applications, setApplications] = useState<any[]>([]);
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Table Sorting and Client Pagination
+  const [tablePage, setTablePage] = useState<number>(1);
+  const [tablePageSize, setTablePageSize] = useState<number>(10);
+  const [sortField, setSortField] = useState<string>("candidateName");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   // Reject modal
   const [rejectingAppId, setRejectingAppId] = useState<string | null>(null);
@@ -225,7 +243,7 @@ function ApplicationsContent() {
             return (
               <div
                 key={col.id}
-                className={`flex flex-col bg-muted/30 rounded-xs border border-border border-t-4 ${col.color} p-2.5 min-h-[480px]`}
+                className={`flex flex-col bg-muted/30 rounded-xs border border-border border-t-4 ${col.color} p-2.5 min-h-120`}
               >
                 {/* Column Header */}
                 <div className="flex items-center justify-between pb-2 mb-2 border-b border-border/60">
@@ -335,67 +353,142 @@ function ApplicationsContent() {
         </div>
       ) : (
         /* LIST VIEW */
-        <Card className="shadow-none overflow-hidden">
-          <div className="divide-y divide-border">
-            {filteredApplications.map((app) => (
-              <div
-                key={app.id}
-                className="p-3 hover:bg-muted/20 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
+        <TableShell>
+          <Table>
+            <THead>
+              <SortableTH
+                field="candidateName"
+                currentSort={sortField === "candidateName" ? (sortDirection === "asc" ? "candidateName" : "-candidateName") : ""}
+                onSort={(f, d) => {
+                  setSortField(f);
+                  setSortDirection(d);
+                }}
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground text-sm">
-                      {app.candidateName}
-                    </span>
-                    <StatusBadge status={app.stage} />
-                    <Badge variant="outline" className="text-[10px]">
-                      Fit: {app.fitScore}%
-                    </Badge>
-                  </div>
-                  <div className="text-muted-foreground flex items-center gap-3 text-[11px]">
-                    <span>Target: {app.jobTitle}</span>
-                    <span>•</span>
-                    <span>{app.candidateEmail}</span>
-                    <span>•</span>
-                    <span>Source: {app.source}</span>
-                  </div>
-                </div>
+                Candidate Name
+              </SortableTH>
+              <TH>Target Requisition</TH>
+              <SortableTH
+                field="fitScore"
+                currentSort={sortField === "fitScore" ? (sortDirection === "asc" ? "fitScore" : "-fitScore") : ""}
+                onSort={(f, d) => {
+                  setSortField(f);
+                  setSortDirection(d);
+                }}
+              >
+                AI Fit Score
+              </SortableTH>
+              <TH>Recruitment Stage</TH>
+              <TH>Source</TH>
+              <TH align="right">Pipeline Actions</TH>
+            </THead>
+            <TBody>
+              {filteredApplications.length === 0 ? (
+                <EmptyRow colSpan={6}>No applications found matching criteria.</EmptyRow>
+              ) : (
+                [...filteredApplications]
+                  .sort((a, b) => {
+                    let aVal = a[sortField];
+                    let bVal = b[sortField];
+                    if (typeof aVal === "string") {
+                      aVal = aVal.toLowerCase();
+                      bVal = (bVal || "").toLowerCase();
+                    }
+                    if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+                    if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+                    return 0;
+                  })
+                  .slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize)
+                  .map((app) => (
+                    <TR key={app.id}>
+                      <TD>
+                        <div>
+                          <span className="font-semibold text-foreground text-xs block">
+                            {app.candidateName}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">{app.candidateEmail}</span>
+                        </div>
+                      </TD>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                  <select
-                    value={app.stage}
-                    onChange={(e) => handleStageChange(app.id, e.target.value as any)}
-                    className="h-7 text-xs rounded-xs border border-border bg-card px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-copper"
-                  >
-                    {KANBAN_STAGES.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                      <TD>
+                        <span className="font-medium text-foreground text-xs">{app.jobTitle}</span>
+                      </TD>
 
-                  <Link
-                    href={`/interviews/schedule?candidateId=${app.candidateId}&applicationId=${app.id}`}
-                  >
-                    <Button size="xs" variant="outline" className="gap-1">
-                      <Calendar className="size-3" />
-                      <span>Interview</span>
-                    </Button>
-                  </Link>
+                      <TD>
+                        <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                          {app.fitScore}% Fit
+                        </Badge>
+                      </TD>
 
-                  <Link
-                    href={`/offers/new?candidateId=${app.candidateId}&applicationId=${app.id}`}
-                  >
-                    <Button size="xs" variant="accent" className="gap-1">
-                      <Gift className="size-3" />
-                      <span>Offer</span>
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+                      <TD>
+                        <select
+                          value={app.stage}
+                          onChange={(e) => handleStageChange(app.id, e.target.value as any)}
+                          className="h-7 text-xs rounded-xs border border-border bg-card px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-copper font-medium"
+                        >
+                          {KANBAN_STAGES.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                      </TD>
+
+                      <TD>
+                        <span className="text-xs text-muted-foreground capitalize">{app.source || "Careers"}</span>
+                      </TD>
+
+                      <TD align="right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <RoleGuard permission="canScheduleInterviews">
+                            <Link
+                              href={`/interviews/schedule?candidateId=${app.candidateId}&applicationId=${app.id}`}
+                            >
+                              <Button size="xs" variant="outline" className="gap-1 text-xs h-7">
+                                <Calendar className="size-3 text-copper" />
+                                <span>Interview</span>
+                              </Button>
+                            </Link>
+                          </RoleGuard>
+
+                          <RoleGuard permission="canCreateOffers">
+                            <Link
+                              href={`/offers/new?candidateId=${app.candidateId}&applicationId=${app.id}`}
+                            >
+                              <Button size="xs" variant="accent" className="gap-1 text-xs h-7">
+                                <Gift className="size-3" />
+                                <span>Offer</span>
+                              </Button>
+                            </Link>
+                          </RoleGuard>
+
+                          <RoleGuard permission="canAdvancePipeline">
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              onClick={() => setRejectingAppId(app.id)}
+                              className="h-7 w-7 p-0 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                              title="Reject Application"
+                            >
+                              <XCircle className="size-3.5" />
+                            </Button>
+                          </RoleGuard>
+                        </div>
+                      </TD>
+                    </TR>
+                  ))
+              )}
+            </TBody>
+          </Table>
+
+          <ClientPagination
+            page={tablePage}
+            limit={tablePageSize}
+            total={filteredApplications.length}
+            onPageChange={setTablePage}
+            onLimitChange={setTablePageSize}
+            limitOptions={[10, 25, 50, 100]}
+          />
+        </TableShell>
       )}
 
       {/* Reject Application Modal */}
