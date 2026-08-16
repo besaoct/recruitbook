@@ -6,6 +6,12 @@ import { useState, Suspense } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 import { Icon } from "@/components/layout/icon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { NavNodeView } from "@/lib/navigation";
 
@@ -61,17 +67,19 @@ function SidebarNavContent({
   const searchParams = useSearchParams();
 
   return (
-    <nav className="flex flex-1 min-h-0 flex-col gap-0.5 overflow-y-auto overflow-x-hidden px-2 py-3 scrollbar-thin">
-      {items.map((item) => (
-        <NavItem
-          key={item.href + item.label}
-          item={item}
-          collapsed={collapsed}
-          pathname={pathname}
-          searchParams={searchParams}
-        />
-      ))}
-    </nav>
+    <TooltipProvider delayDuration={50}>
+      <nav className="flex flex-1 min-h-0 flex-col gap-0.5 overflow-y-auto overflow-x-hidden px-2 py-3 scrollbar-thin">
+        {items.map((item) => (
+          <NavItem
+            key={item.href + item.label}
+            item={item}
+            collapsed={collapsed}
+            pathname={pathname}
+            searchParams={searchParams}
+          />
+        ))}
+      </nav>
+    </TooltipProvider>
   );
 }
 
@@ -119,23 +127,53 @@ function NavItem({
 
   if (collapsed) {
     return (
-      <Link
-        href={item.href}
-        title={item.label}
-        className={cn(
-          "flex h-9 items-center justify-center rounded-xs transition-colors",
-          active
-            ? "bg-shell-active text-shell-active-foreground"
-            : "text-shell-muted hover:bg-shell-foreground/10 hover:text-shell-foreground",
-        )}
-      >
-        <Icon name={item.icon} />
-        {item.badge ? (
-          <span className="ml-1 rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground">
-            {item.badge > 99 ? "99+" : item.badge}
-          </span>
-        ) : null}
-      </Link>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            href={item.href}
+            aria-label={item.label}
+            className={cn(
+              "flex h-9 w-full items-center justify-center rounded-xs transition-colors",
+              active
+                ? "bg-shell-active text-shell-active-foreground"
+                : "text-shell-muted hover:bg-shell-foreground/10 hover:text-shell-foreground",
+            )}
+          >
+            <Icon name={item.icon} className="size-4 shrink-0" />
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent
+          side="right"
+          sideOffset={10}
+          className={cn(
+            "z-50 shadow-md",
+            hasChildren ? "flex flex-col gap-1.5 p-2.5 min-w-[150px]" : "flex items-center gap-2 px-2.5 py-1.5",
+          )}
+        >
+          <div className="flex items-center justify-between gap-2 font-medium">
+            <span>{item.label}</span>
+            {item.badge ? (
+              <span className="rounded-full bg-copper/20 text-copper border border-copper/30 px-1.5 py-0.2 text-[10px] font-bold">
+                {item.badge > 99 ? "99+" : item.badge}
+              </span>
+            ) : null}
+          </div>
+          {hasChildren && item.children && item.children.length > 0 && (
+            <div className="flex flex-col gap-1 pt-1.5 border-t border-border/50 text-[11px] text-muted-foreground">
+              {item.children.map((child) => (
+                <div key={child.href} className="flex items-center justify-between gap-2">
+                  <span className="truncate">{child.label}</span>
+                  {child.badge ? (
+                    <span className="text-[10px] font-semibold text-copper">
+                      {child.badge}
+                    </span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
