@@ -22,12 +22,6 @@ import {
   CheckCircle2,
   Loader2,
   DollarSign,
-  Gift,
-  HeartPulse,
-  Palmtree,
-  Sparkles,
-  Laptop,
-  Dumbbell,
   Clock,
   GraduationCap,
   Award,
@@ -330,37 +324,33 @@ export default function ApplyPage({
               {benefitsListToRender.length > 0 && (
                 <div className="space-y-3 pt-4 border-t border-border/60">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-xs uppercase tracking-wider text-copper flex items-center gap-1.5">
-                      <Gift className="size-3.5" />
-                      <span>Benefits, Perks &amp; Total Rewards ({benefitsListToRender.length})</span>
+                    <h3 className="font-semibold text-xs uppercase tracking-wider text-copper">
+                      Benefits, Perks &amp; Total Rewards ({benefitsListToRender.length})
                     </h3>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {benefitsListToRender.map((b) => {
                       const meta = getCategoryMeta(b.category || "custom");
-                      const Icon = meta.icon;
 
                       return (
                         <div
                           key={b.id || b.title}
-                          className="p-3.5 rounded-xs border border-border bg-card/60 hover:border-copper/40 transition-colors flex items-start gap-3"
+                          className="p-3.5 rounded-xs border border-border bg-card/60 hover:border-copper/40 transition-colors space-y-1"
                         >
-                          <div className={`p-2 rounded-xs border shrink-0 ${meta.color}`}>
-                            <Icon className="size-4" />
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="font-semibold text-xs text-foreground block">
+                              {b.title}
+                            </span>
+                            <Badge variant="outline" className={`text-[9px] px-1.5 py-0 border shrink-0 ${meta.color}`}>
+                              {meta.label}
+                            </Badge>
                           </div>
-                          <div className="space-y-0.5 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-semibold text-xs text-foreground block">
-                                {b.title}
-                              </span>
-                            </div>
-                            {b.description && (
-                              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                {b.description}
-                              </p>
-                            )}
-                          </div>
+                          {b.description && (
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              {b.description}
+                            </p>
+                          )}
                         </div>
                       );
                     })}

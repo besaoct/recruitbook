@@ -6,13 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
-  HeartPulse,
-  DollarSign,
-  Palmtree,
-  Sparkles,
-  Laptop,
-  Dumbbell,
-  Gift,
   Plus,
   Trash2,
   Edit2,
@@ -29,13 +22,13 @@ export interface BenefitItem {
 }
 
 export const BENEFIT_CATEGORIES = [
-  { value: "healthcare", label: "Health & Medical", icon: HeartPulse, color: "text-rose-500 bg-rose-500/10 border-rose-500/20" },
-  { value: "financial", label: "Financial & Equity", icon: DollarSign, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
-  { value: "pto", label: "Time Off & Leave", icon: Palmtree, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
-  { value: "growth", label: "Growth & Learning", icon: Sparkles, color: "text-purple-500 bg-purple-500/10 border-purple-500/20" },
-  { value: "equipment", label: "Equipment & Remote", icon: Laptop, color: "text-blue-500 bg-blue-500/10 border-blue-500/20" },
-  { value: "wellness", label: "Wellness & Lifestyle", icon: Dumbbell, color: "text-teal-500 bg-teal-500/10 border-teal-500/20" },
-  { value: "custom", label: "Other Perks", icon: Gift, color: "text-copper bg-copper/10 border-copper/20" },
+  { value: "healthcare", label: "Health & Medical", color: "text-rose-600 bg-rose-500/10 border-rose-500/20" },
+  { value: "financial", label: "Financial & Equity", color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/20" },
+  { value: "pto", label: "Time Off & Leave", color: "text-amber-600 bg-amber-500/10 border-amber-500/20" },
+  { value: "growth", label: "Growth & Learning", color: "text-purple-600 bg-purple-500/10 border-purple-500/20" },
+  { value: "equipment", label: "Equipment & Remote", color: "text-blue-600 bg-blue-500/10 border-blue-500/20" },
+  { value: "wellness", label: "Wellness & Lifestyle", color: "text-teal-600 bg-teal-500/10 border-teal-500/20" },
+  { value: "custom", label: "Other Perks", color: "text-copper bg-copper/10 border-copper/20" },
 ] as const;
 
 export const BENEFIT_PRESETS: Omit<BenefitItem, "id">[] = [
@@ -164,8 +157,6 @@ export function BenefitsRepeater({ items = [], onChange }: BenefitsRepeaterProps
           <div className="flex flex-wrap gap-1.5">
             {BENEFIT_PRESETS.map((preset) => {
               const isAdded = items.some((i) => i.title.toLowerCase() === preset.title.toLowerCase());
-              const meta = getCategoryMeta(preset.category);
-              const Icon = meta.icon;
 
               return (
                 <button
@@ -179,7 +170,6 @@ export function BenefitsRepeater({ items = [], onChange }: BenefitsRepeaterProps
                       : "bg-card hover:bg-copper/10 hover:border-copper/40 text-foreground"
                   }`}
                 >
-                  <Icon className="size-3 text-copper shrink-0" />
                   <span className="truncate max-w-50">{preset.title}</span>
                   {!isAdded && <Plus className="size-2.5 ml-0.5 opacity-60" />}
                 </button>
@@ -254,7 +244,6 @@ export function BenefitsRepeater({ items = [], onChange }: BenefitsRepeaterProps
       {/* Benefit Cards Repeater List */}
       {items.length === 0 ? (
         <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xs bg-muted/10 space-y-1">
-          <Gift className="size-6 text-muted-foreground/60 mx-auto" />
           <p className="font-medium text-foreground">No benefits added yet</p>
           <p className="text-[11px]">Click the presets above or add custom benefits to highlight your compensation &amp; culture on Careers.</p>
         </div>
@@ -262,7 +251,6 @@ export function BenefitsRepeater({ items = [], onChange }: BenefitsRepeaterProps
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {items.map((item) => {
             const meta = getCategoryMeta(item.category);
-            const Icon = meta.icon;
             const isEditing = editingId === item.id;
 
             if (isEditing) {
@@ -332,25 +320,20 @@ export function BenefitsRepeater({ items = [], onChange }: BenefitsRepeaterProps
                 key={item.id}
                 className="p-3 bg-card shadow-none border border-border hover:border-copper/30 transition-colors flex items-start justify-between gap-3 group"
               >
-                <div className="flex items-start gap-2.5 min-w-0">
-                  <div className={`p-1.5 rounded-xs border shrink-0 ${meta.color}`}>
-                    <Icon className="size-3.5" />
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-semibold text-xs text-foreground block">
+                      {item.title}
+                    </span>
+                    <Badge variant="outline" className={`text-[9px] px-1.5 py-0 border shrink-0 ${meta.color}`}>
+                      {meta.label}
+                    </Badge>
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-xs text-foreground truncate block">
-                        {item.title}
-                      </span>
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 border-border text-muted-foreground shrink-0">
-                        {meta.label}
-                      </Badge>
-                    </div>
-                    {item.description && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
-                        {item.description}
-                      </p>
-                    )}
-                  </div>
+                  {item.description && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
+                      {item.description}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 shrink-0">

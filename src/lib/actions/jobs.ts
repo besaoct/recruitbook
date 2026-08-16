@@ -164,7 +164,7 @@ export async function createJob(data: {
   niceToHave?: string;
   aboutTeam?: string;
   benefits?: string;
-  benefitsList?: { id?: string; title: string; description?: string; category?: string; icon?: string }[];
+  benefitsList?: { id?: string; title: string; description?: string; category?: string }[];
   skills?: string[];
   secondarySkills?: string[];
   customQuestions?: any[];
@@ -258,7 +258,7 @@ export async function updateJob(
     niceToHave: string;
     aboutTeam: string;
     benefits: string;
-    benefitsList: { id?: string; title: string; description?: string; category?: string; icon?: string }[];
+    benefitsList: { id?: string; title: string; description?: string; category?: string }[];
     skills: string[];
     secondarySkills: string[];
     customQuestions: any[];

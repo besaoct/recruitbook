@@ -294,7 +294,6 @@ export const jobOpenings = pgTable(
           title: string;
           description?: string;
           category?: string;
-          icon?: string;
         }[]
       >()
       .default([]),
