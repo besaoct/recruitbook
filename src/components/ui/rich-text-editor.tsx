@@ -526,7 +526,7 @@ export function RichTextEditor({
             value={htmlContent}
             onChange={handleCodeChange}
             className={cn(
-              "w-full p-3 text-xs border-0 outline-hidden resize-none focus:ring-0 bg-muted/20 text-foreground h-full font-mono",
+              "w-full p-3 text-xs border-0 outline-hidden resize-none focus:ring-0 bg-muted/20 text-foreground h-full ",
               !isCodeView && "hidden"
             )}
             placeholder="HTML source code..."

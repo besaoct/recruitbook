@@ -573,15 +573,7 @@ export default function EditJobPage({ params }: EditJobPageProps) {
               </div>
               <Badge
                 variant="outline"
-                className={`text-[10px] uppercase font-semibold tracking-wider ${
-                  status === "published"
-                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                    : status === "draft"
-                    ? "bg-muted text-muted-foreground"
-                    : status === "on_hold"
-                    ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                    : "bg-destructive/10 text-destructive border-destructive/20"
-                }`}
+                className={`text-[10px] uppercase font-semibold tracking-wider ${ status === "published" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : status === "draft" ? "bg-muted text-muted-foreground" : status === "on_hold" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-destructive/10 text-destructive border-destructive/20" }`}
               >
                 {status.replace("_", " ")}
               </Badge>
@@ -620,7 +612,7 @@ export default function EditJobPage({ params }: EditJobPageProps) {
                   placeholder="e.g. REQ-2026-042"
                   value={reqCode}
                   onChange={(e) => setReqCode(e.target.value)}
-                  className="h-8 text-xs uppercase font-mono"
+                  className="h-8 text-xs uppercase"
                 />
               </div>
 
@@ -908,7 +900,7 @@ export default function EditJobPage({ params }: EditJobPageProps) {
                     placeholder="120000"
                     value={salaryMin}
                     onChange={(e) => setSalaryMin(e.target.value)}
-                    className="h-8 pl-8 text-xs font-mono"
+                    className="h-8 pl-8 text-xs"
                   />
                 </div>
               </div>
@@ -923,7 +915,7 @@ export default function EditJobPage({ params }: EditJobPageProps) {
                     placeholder="180000"
                     value={salaryMax}
                     onChange={(e) => setSalaryMax(e.target.value)}
-                    className="h-8 pl-8 text-xs font-mono"
+                    className="h-8 pl-8 text-xs"
                   />
                 </div>
               </div>
@@ -1486,7 +1478,7 @@ export default function EditJobPage({ params }: EditJobPageProps) {
                   max="50"
                   value={newExpLevelMinYears}
                   onChange={(e) => setNewExpLevelMinYears(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
               <div className="space-y-1">
@@ -1497,7 +1489,7 @@ export default function EditJobPage({ params }: EditJobPageProps) {
                   max="50"
                   value={newExpLevelMaxYears}
                   onChange={(e) => setNewExpLevelMaxYears(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
             </div>

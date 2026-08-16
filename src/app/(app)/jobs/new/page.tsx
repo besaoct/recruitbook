@@ -522,7 +522,7 @@ export default function CreateJobPage() {
                   placeholder="e.g. REQ-2026-042"
                   value={reqCode}
                   onChange={(e) => setReqCode(e.target.value)}
-                  className="h-8 text-xs uppercase font-mono"
+                  className="h-8 text-xs uppercase"
                 />
               </div>
 
@@ -810,7 +810,7 @@ export default function CreateJobPage() {
                     placeholder="120000"
                     value={salaryMin}
                     onChange={(e) => setSalaryMin(e.target.value)}
-                    className="h-8 pl-8 text-xs font-mono"
+                    className="h-8 pl-8 text-xs"
                   />
                 </div>
               </div>
@@ -825,7 +825,7 @@ export default function CreateJobPage() {
                     placeholder="180000"
                     value={salaryMax}
                     onChange={(e) => setSalaryMax(e.target.value)}
-                    className="h-8 pl-8 text-xs font-mono"
+                    className="h-8 pl-8 text-xs"
                   />
                 </div>
               </div>
@@ -1370,7 +1370,7 @@ export default function CreateJobPage() {
                   max="50"
                   value={newExpLevelMinYears}
                   onChange={(e) => setNewExpLevelMinYears(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
               <div className="space-y-1">
@@ -1381,7 +1381,7 @@ export default function CreateJobPage() {
                   max="50"
                   value={newExpLevelMaxYears}
                   onChange={(e) => setNewExpLevelMaxYears(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
             </div>

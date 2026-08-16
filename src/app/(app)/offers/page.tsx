@@ -296,7 +296,7 @@ function OffersContent() {
                       permission="canViewSalaries"
                       fallback={<span className="text-[11px] text-muted-foreground italic">Confidential</span>}
                     >
-                      <span className="text-xs font-mono font-medium text-foreground">
+                      <span className="text-xs font-medium text-foreground">
                         ${(off.baseSalary || 0).toLocaleString()} {off.currency}
                       </span>
                     </RoleGuard>
@@ -457,7 +457,7 @@ function OffersContent() {
                 <div className="p-3 bg-card rounded-xs border border-border font-sans space-y-1.5 not-italic">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Annual Base Compensation:</span>
-                    <span className="font-semibold text-foreground font-mono">${(previewOffer.baseSalary || 0).toLocaleString()} {previewOffer.currency}</span>
+                    <span className="font-semibold text-foreground">${(previewOffer.baseSalary || 0).toLocaleString()} {previewOffer.currency}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Anticipated Start Date:</span>

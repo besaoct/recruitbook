@@ -414,7 +414,7 @@ function ApplicationsContent() {
                       </TD>
 
                       <TD>
-                        <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                        <Badge variant="outline" className="text-[10px] border-copper/30 text-copper">
                           {app.fitScore}% Fit
                         </Badge>
                       </TD>

@@ -168,7 +168,7 @@ export default function ApplyPage({
           <ArrowLeft className="size-3.5" />
           <span>Back to All Openings</span>
         </Link>
-        <span className="text-xs text-muted-foreground font-mono">
+        <span className="text-xs text-muted-foreground">
           {job?.reqCode || "REQ-OPENING"}
         </span>
       </header>
@@ -192,7 +192,7 @@ export default function ApplyPage({
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">{job.title}</h1>
                     {job.reqCode && (
-                      <Badge variant="outline" className="text-[10px] font-mono border-border text-muted-foreground">
+                      <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">
                         {job.reqCode}
                       </Badge>
                     )}
@@ -223,7 +223,7 @@ export default function ApplyPage({
 
                 {job.isSalaryPublic !== false && job.salaryMin && (
                   <div className="text-right sm:text-right shrink-0">
-                    <div className="text-sm sm:text-base font-bold text-copper font-mono">
+                    <div className="text-sm sm:text-base font-bold text-copper">
                       {job.currency || "$"} {(job.salaryMin || 0).toLocaleString()} – {(job.salaryMax || 0).toLocaleString()}
                     </div>
                     <span className="text-[11px] text-muted-foreground block capitalize">

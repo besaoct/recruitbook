@@ -361,7 +361,7 @@ function CandidatesContent() {
 
                   {/* Experience & Notice */}
                   <TD>
-                    <div className="text-xs text-foreground font-mono font-medium">
+                    <div className="text-xs text-foreground font-medium">
                       {cand.totalExperienceYears || 3} yrs exp
                     </div>
                     <span className="text-[11px] text-muted-foreground">
@@ -608,7 +608,7 @@ function CandidatesContent() {
                   type="number"
                   value={editExp}
                   onChange={(e) => setEditExp(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
               <div className="space-y-1">
@@ -617,7 +617,7 @@ function CandidatesContent() {
                   type="number"
                   value={editSalary}
                   onChange={(e) => setEditSalary(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
             </div>

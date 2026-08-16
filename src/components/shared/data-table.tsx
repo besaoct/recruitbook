@@ -203,7 +203,7 @@ export function TD({
         "px-3 py-2 align-middle text-xs text-foreground",
         align === "right" && "text-right tabular",
         align === "center" && "text-center",
-        mono && "font-mono text-[11px]",
+        mono && "text-[11px]",
         className,
       )}
     >

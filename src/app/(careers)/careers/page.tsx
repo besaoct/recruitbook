@@ -83,17 +83,8 @@ export default function CareersPublicPage() {
                 {org?.name || "My Organisation"}
               </span>
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                Careers &amp; Opportunities
-              </span>
+                Careers &amp; Opportunities               </span>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link href="/login">
-              <Button variant="ghost" size="xs" className="text-xs">
-                Internal Recruiter Login
-              </Button>
-            </Link>
           </div>
         </div>
       </header>
@@ -223,7 +214,7 @@ export default function CareersPublicPage() {
                 <div className="pt-4 mt-3 border-t border-border flex items-center justify-between">
                   <div>
                     {job.salaryMin ? (
-                      <span className="text-xs font-bold text-copper font-mono">
+                      <span className="text-xs font-bold text-copper">
                         {job.currency || "$"} {(job.salaryMin || 0).toLocaleString()} – {(job.salaryMax || 0).toLocaleString()}
                         <span className="text-[10px] text-muted-foreground font-normal ml-1">
                           / {job.payFrequency === "hourly" ? "hr" : "yr"}

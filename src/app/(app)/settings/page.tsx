@@ -1509,7 +1509,7 @@ export function HostHrmRecruitmentView() {
                           <span className="font-semibold text-xs text-foreground">{dept.name}</span>
                         </TD>
                         <TD mono>
-                          <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                          <Badge variant="outline" className="text-[10px] border-copper/30 text-copper">
                             {dept.code}
                           </Badge>
                         </TD>
@@ -1659,7 +1659,7 @@ export function HostHrmRecruitmentView() {
                           <span className="font-semibold text-xs text-foreground">{wm.name}</span>
                         </TD>
                         <TD mono>
-                          <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                          <Badge variant="outline" className="text-[10px] border-copper/30 text-copper">
                             {wm.slug}
                           </Badge>
                         </TD>
@@ -1733,7 +1733,7 @@ export function HostHrmRecruitmentView() {
                           <span className="font-semibold text-xs text-foreground">{et.name}</span>
                         </TD>
                         <TD mono>
-                          <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                          <Badge variant="outline" className="text-[10px] border-copper/30 text-copper">
                             {et.slug}
                           </Badge>
                         </TD>
@@ -1808,12 +1808,12 @@ export function HostHrmRecruitmentView() {
                           <span className="font-semibold text-xs text-foreground">{exp.name}</span>
                         </TD>
                         <TD mono>
-                          <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                          <Badge variant="outline" className="text-[10px] border-copper/30 text-copper">
                             {exp.slug}
                           </Badge>
                         </TD>
                         <TD>
-                          <span className="font-mono text-xs text-foreground font-medium">
+                          <span className="text-xs text-foreground font-medium">
                             {exp.minYears} – {exp.maxYears} yrs
                           </span>
                         </TD>
@@ -1887,7 +1887,7 @@ export function HostHrmRecruitmentView() {
                           <span className="font-semibold text-xs text-foreground">{edu.name}</span>
                         </TD>
                         <TD mono>
-                          <Badge variant="outline" className="text-[10px] font-mono border-copper/30 text-copper">
+                          <Badge variant="outline" className="text-[10px] border-copper/30 text-copper">
                             {edu.slug}
                           </Badge>
                         </TD>
@@ -2803,7 +2803,7 @@ export function HostHrmRecruitmentView() {
                   max="50"
                   value={newExpLevelMinYears}
                   onChange={(e) => setNewExpLevelMinYears(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
               <div className="space-y-1">
@@ -2814,7 +2814,7 @@ export function HostHrmRecruitmentView() {
                   max="50"
                   value={newExpLevelMaxYears}
                   onChange={(e) => setNewExpLevelMaxYears(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
             </div>
@@ -2878,7 +2878,7 @@ export function HostHrmRecruitmentView() {
                   max="50"
                   value={editExpLevelMinYears}
                   onChange={(e) => setEditExpLevelMinYears(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
               <div className="space-y-1">
@@ -2889,7 +2889,7 @@ export function HostHrmRecruitmentView() {
                   max="50"
                   value={editExpLevelMaxYears}
                   onChange={(e) => setEditExpLevelMaxYears(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
             </div>

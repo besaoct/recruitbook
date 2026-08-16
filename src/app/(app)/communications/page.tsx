@@ -407,7 +407,7 @@ function CommunicationsContent() {
                         <span className="font-semibold text-foreground text-xs block">
                           {msg.recipientName}
                         </span>
-                        <span className="text-[11px] text-muted-foreground font-mono">
+                        <span className="text-[11px] text-muted-foreground">
                           {msg.recipientEmail}
                         </span>
                       </div>
@@ -421,10 +421,10 @@ function CommunicationsContent() {
                       </Badge>
                     </TD>
                     <TD>
-                      <div className="text-xs text-foreground font-mono">
+                      <div className="text-xs text-foreground">
                         {new Date(msg.sentAt).toLocaleDateString()}
                       </div>
-                      <span className="text-[11px] text-muted-foreground font-mono">
+                      <span className="text-[11px] text-muted-foreground">
                         {new Date(msg.sentAt).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -510,7 +510,7 @@ function CommunicationsContent() {
                 rows={6}
                 value={tplBody}
                 onChange={(e) => setTplBody(e.target.value)}
-                className="text-xs font-mono"
+                className="text-xs"
               />
             </div>
           </div>

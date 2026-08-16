@@ -324,7 +324,7 @@ function InterviewsContent() {
                       <div className="font-medium text-foreground text-xs">
                         {intv.roundTitle}
                       </div>
-                      <Badge variant="outline" className="text-[9px] uppercase tracking-wider font-mono">
+                      <Badge variant="outline" className="text-[9px] uppercase tracking-wider">
                         {intv.roundType} ({intv.durationMinutes} min)
                       </Badge>
                     </div>
@@ -336,7 +336,7 @@ function InterviewsContent() {
                       <Clock className="size-3 text-copper shrink-0" />
                       <span>{new Date(intv.scheduledStart).toLocaleDateString()}</span>
                     </div>
-                    <span className="text-[11px] text-muted-foreground font-mono">
+                    <span className="text-[11px] text-muted-foreground">
                       {new Date(intv.scheduledStart).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -502,7 +502,7 @@ function InterviewsContent() {
                   max="5"
                   value={techScore}
                   onChange={(e) => setTechScore(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
               <div className="space-y-1">
@@ -513,7 +513,7 @@ function InterviewsContent() {
                   max="5"
                   value={cultureScore}
                   onChange={(e) => setCultureScore(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
               <div className="space-y-1">
@@ -524,7 +524,7 @@ function InterviewsContent() {
                   max="5"
                   value={commScore}
                   onChange={(e) => setCommScore(Number(e.target.value))}
-                  className="h-8 text-xs font-mono"
+                  className="h-8 text-xs"
                 />
               </div>
             </div>

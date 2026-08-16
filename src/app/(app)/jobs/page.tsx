@@ -270,7 +270,7 @@ function JobsContent() {
                       </Link>
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                         {job.reqCode && (
-                          <span className="font-mono text-[10px] text-muted-foreground">
+                          <span className="text-[10px] text-muted-foreground">
                             {job.reqCode}
                           </span>
                         )}
@@ -310,7 +310,7 @@ function JobsContent() {
                   {/* Compensation Band */}
                   <TD>
                     {job.salaryMin ? (
-                      <span className="text-xs font-mono font-medium text-foreground">
+                      <span className="text-xs font-medium text-foreground">
                         {job.currency || "$"}{(job.salaryMin || 0).toLocaleString()} – {(job.salaryMax || 0).toLocaleString()}
                       </span>
                     ) : (
